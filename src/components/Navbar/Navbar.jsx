@@ -20,6 +20,9 @@ const Navbar = () => {
     const isMenuOpen = mobileMenu.open && mobileMenu.path === location.pathname
     const navbarTransparent = isTransparent && !isMenuOpen
     const isActive = (path) => location.pathname === path
+    const activeLinkClass = navbarTransparent
+        ? 'font-semibold text-white border-b-2 border-white'
+        : 'font-semibold text-black border-b-2 border-black'
 
     const toggleMobileMenu = () => {
         setMobileMenu({ path: location.pathname, open: !isMenuOpen })
@@ -53,10 +56,10 @@ const Navbar = () => {
                             ${isMenuOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-full opacity-0'}
                             ${navbarTransparent ? 'text-black lg:text-white' : 'text-black lg:text-black'}`}
                     >
-                        <li><Link className={isActive('/') ? 'font-semibold text-black' : undefined} aria-current={isActive('/') ? 'page' : undefined} to="/">Home</Link></li>
-                        <li><Link className={isActive('/forum') ? 'font-semibold text-black' : undefined} aria-current={isActive('/forum') ? 'page' : undefined} to="/forum">Forum</Link></li>
-                        <li><Link className={isActive('/blog') ? 'font-semibold text-black' : undefined} aria-current={isActive('/blog') ? 'page' : undefined} to="/blog">Blog</Link></li>
-                        <li><Link className={isActive('/E-Commerce') ? 'font-semibold text-black' : undefined} aria-current={isActive('/E-Commerce') ? 'page' : undefined} to="/E-Commerce">E-Commerce</Link></li>
+                        <li><Link className={isActive('/') ? activeLinkClass : undefined} aria-current={isActive('/') ? 'page' : undefined} to="/">Home</Link></li>
+                        <li><Link className={isActive('/forum') ? activeLinkClass : undefined} aria-current={isActive('/forum') ? 'page' : undefined} to="/forum">Forum</Link></li>
+                        <li><Link className={isActive('/blog') ? activeLinkClass : undefined} aria-current={isActive('/blog') ? 'page' : undefined} to="/blog">Blog</Link></li>
+                        <li><Link className={isActive('/E-Commerce') ? activeLinkClass : undefined} aria-current={isActive('/E-Commerce') ? 'page' : undefined} to="/E-Commerce">E-Commerce</Link></li>
                         <li className="mt-2 border-t border-gray-200 pt-5 lg:hidden">
                             <Link className={isActive('/login') ? 'font-semibold text-button' : 'text-button'} aria-current={isActive('/login') ? 'page' : undefined} to="/login">Log in</Link>
                         </li>
