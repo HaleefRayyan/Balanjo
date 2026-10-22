@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "../../context/auth"
 import heroBg from "../../assets/Hero/heroBg.png"
 
 const Register = () => {
     const navigate = useNavigate()
+    const { login } = useAuth()
 
     return (
         <main
@@ -16,7 +18,9 @@ const Register = () => {
 
                 <form className="mt-7 flex flex-1 flex-col" onSubmit={(event) => {
                     event.preventDefault()
-                    navigate("/")
+        const form = new FormData(event.currentTarget)
+        login({ name: form.get("fullName"), email: form.get("email") })
+        navigate("/", { replace: true })
                 }}>
                     <label className="text-[13px] text-[#222]" htmlFor="full-name">Full Name</label>
                     <input
@@ -32,6 +36,7 @@ const Register = () => {
                         id="register-email"
                         name="email"
                         type="email"
+                        required
                         placeholder="your email address"
                         className="mt-1 h-10 w-full rounded-[5px] border border-[#c9c9c9] px-4 text-[13px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
                     />
@@ -41,6 +46,7 @@ const Register = () => {
                         id="register-password"
                         name="password"
                         type="password"
+                        required
                         placeholder="your password"
                         className="mt-1 h-10 w-full rounded-[5px] border border-[#c9c9c9] px-4 text-[13px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
                     />
@@ -50,6 +56,7 @@ const Register = () => {
                         id="confirm-password"
                         name="confirmPassword"
                         type="password"
+                        required
                         placeholder="your password"
                         className="mt-1 h-10 w-full rounded-[5px] border border-[#c9c9c9] px-4 text-[13px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
                     />

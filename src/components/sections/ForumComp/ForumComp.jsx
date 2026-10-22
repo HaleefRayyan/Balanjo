@@ -1,65 +1,18 @@
-import Header from "../../ui/Header"
+import SectionHeader from "../../ui/SectionHeader"
 import Button from "../../ui/Button"
 import messageIcon from "../../../assets/forum/message.svg"
-import postImage from "../../../assets/forum/image.png"
-import profileHighLine from "../../../assets/forum/profileHighLine.png"
-import profileMidLine from "../../../assets/forum/profileMidLine.png"
-import profileNoLine from "../../../assets/forum/profileNoLine.png"
 import profilePeapole from "../../../assets/forum/profilePeapole.svg"
+import { forumCategories, forumPosts, trendingTopics } from "../../../data/forum"
 
-const categories = [
-    { label: "Campus Life", color: "#E7B66C" },
-    { label: "Tech", color: "#7DD4B5" },
-    { label: "Kesehatan", color: "#9580D9" },
-    { label: "Informasi", color: "#E88989" },
-    { label: "Bisnis", color: "#D881D3" },
-    { label: "Random", color: "#7CC5D8" },
-]
-
-const trendingTopics = [
-    ["Info tempat nongkrong", "di Unand dong", "14 balasan"],
-    ["Guyss, ada info jadwal", "wisuda ga?", "12 balasan"],
-    ["Rekomen beli hadiah", "buat sempro", "10 balasan"],
-    ["Tips n trik war KRS", "", "8 balasan"],
-]
-
-const posts = [
-    {
-        profile: profileNoLine,
-        line: profileMidLine,
-        people: true,
-        text: "Do you like pigeons ?",
-        category: "Random",
-        color: "#7CC5D8",
-        replies: "2 balasan",
-    },
-    {
-        profile: profileNoLine,
-        line: profileHighLine,
-        people: true,
-        text: "Info tempat nongkrong di Unand dong",
-        category: "Campus Life",
-        color: "#E7B66C",
-        replies: "14 balasan",
-        image: postImage,
-    },
-    {
-        profile: profileNoLine,
-        text: "Ig Error ya?",
-        category: "Tech",
-        color: "#7DD4B5",
-    },
-]
-
-const ForumComp = ()=>{
+const ForumComp = ({ showHeader = false })=>{
     return <section className="px-5 pb-20 sm:px-8 lg:px-[97.32px] lg:pb-30">
-        <Header
+        {showHeader && <SectionHeader
             category="Forum"
             label ="Mari Berdiskusi Dengan Para Rangers"
             ket ="Tempat di mana ide-ide segar bertemu dengan pengetahuan mendalam
                 untuk membantu mengembangkan bisnis kamu"
             to='/forum'
-        />
+        />}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
             <aside className="order-2 lg:order-1">
                 <Button className="h-12 w-full rounded-lg text-base">Mulai Diskusi Baru</Button>
@@ -67,7 +20,7 @@ const ForumComp = ()=>{
                 <div className="mt-8">
                     <h3 className="mb-4 text-base text-abu">Kategori</h3>
                     <ul className="space-y-4">
-                        {categories.map((category) => (
+                        {forumCategories.map((category) => (
                             <li className="flex items-center gap-3 text-base" key={category.label}>
                                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
                                 {category.label}
@@ -91,7 +44,7 @@ const ForumComp = ()=>{
             </aside>
 
             <div className="order-1 space-y-5 lg:order-2">
-                {posts.map((post) => (
+                {forumPosts.map((post) => (
                     <article className="relative min-h-24 rounded-lg bg-white px-4 py-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] sm:px-5" key={post.text}>
                         <div className="flex gap-3">
                                     <div className="w-12 shrink-0">

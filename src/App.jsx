@@ -1,6 +1,7 @@
 import { RouterProvider } from "react-router-dom"
 import { useEffect } from "react"
 import router from "./routes"
+import AuthProvider from "./context/AuthProvider"
 
 function App() {
   useEffect(() => {
@@ -13,7 +14,11 @@ function App() {
     return unsubscribe
   }, [])
 
-  return   <RouterProvider router={router} />
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  )
 }
 
 export default App

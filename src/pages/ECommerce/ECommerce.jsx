@@ -1,37 +1,16 @@
-import Navbar from "../../components/Navbar"
 import Search from "../../components/ui/Search"
 import ECommerceComp from "../../components/sections/ECommerceComp"
-import Footer from "../../components/sections/Footer"
 import iklan from "../../assets/ECommerce/iklan.png"
 import iklanDua from "../../assets/ECommerce/iklanDua.png"
-import makanan from "../../assets/ECommerce/makanan.svg"
-import minuman from "../../assets/ECommerce/minuman.svg"
-import fashion from "../../assets/ECommerce/fashion.svg"
-import creative from "../../assets/ECommerce/creative.svg"
-import listrik from "../../assets/ECommerce/listrik.svg"
-import pulsa from "../../assets/ECommerce/pulsa.svg"
-import jasa from "../../assets/ECommerce/jasa.svg"
-import obatObatan from "../../assets/ECommerce/obatObatan.svg"
+import { productCategories } from "../../data/products"
 import { useNavigate } from "react-router-dom"
-
-const categories = [
-    [makanan, "Makanan"],
-    [minuman, "Minuman"],
-    [fashion, "Fashion"],
-    [creative, "Creative"],
-    [listrik, "Listrik"],
-    [pulsa, "Pulsa"],
-    [jasa, "Jasa"],
-    [obatObatan, "Obat-obatan"],
-]
 
 const ECommerce = () => {
 
     const navigate = useNavigate();
 
     return <>
-        <Navbar />
-        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-[196.17px] sm:px-8 lg:px-[6.5vw]">
+        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-29 lg:pt-16 sm:px-8 lg:px-[6.5vw]">
             <Search className="h-10 w-full rounded-md px-4 text-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.08)] placeholder:text-[#aaa]" placeholder="Search for products..." />
 
             <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -40,8 +19,8 @@ const ECommerce = () => {
             </div>
 
             <div className="mt-12 grid grid-cols-4 gap-3 rounded-lg bg-white px-4 py-4 sm:grid-cols-8 sm:gap-5 sm:px-8">
-                {categories.map(([icon, label]) => (
-                    <button className="flex min-w-0 cursor-pointer flex-col items-center gap-1 text-xs leading-tight sm:text-[18px] sm:leading-normal" key={label} type="button" onClick={() => navigate(`/detail-category?category=${encodeURIComponent(label)}`)}>
+                {productCategories.map(({ icon, label }) => (
+                    <button className="flex min-w-0 cursor-pointer flex-col items-center gap-1 text-xs leading-tight sm:text-[18px] sm:leading-normal" key={label} type="button" onClick={() => navigate(`/e-commerce/category/${encodeURIComponent(label)}`)}>
                         <span className="flex h-14 w-14 items-center justify-center rounded-md bg-button sm:h-20 sm:w-20">
                             <img className="h-9 w-9 sm:h-12 sm:w-12" src={icon} alt="" />
                         </span>
@@ -62,7 +41,6 @@ const ECommerce = () => {
                 <button type="button" aria-label="Next page">›</button>
             </div>
         </main>
-        <Footer />
     </>
 }
 

@@ -1,16 +1,14 @@
-
-import Head from "../../components/Head"
-import Navbar from "../../components/Navbar"
-import Footer from "../../components/sections/Footer"
+import PageBanner from "../../components/layout/PageBanner"
+import { blogCategories } from "../../data/blogs"
 
 const UploadArtikel = () => {
 
     return (
         <>
-        <Navbar />
-            <Head>Upload Artikel</Head>
+            <PageBanner>Upload Artikel</PageBanner>
 
-            <main className="mx-4 mb-16 mt-12 w-auto rounded-lg bg-white px-5 py-7 sm:mx-8 sm:px-8 lg:mx-auto lg:mt-21 lg:max-w-[1720px] lg:px-12.25 lg:py-9">
+            <div className="px-4 sm:px-8 lg:px-14.75">
+            <main className="mx-auto mb-16 mt-12 max-w-430 rounded-lg bg-white px-5 py-7 sm:px-8 lg:mt-21 lg:px-12.25 lg:py-9">
                 <form className="flex flex-col gap-8">
                     <label className="flex flex-col gap-1 text-sm text-[#a6a6a6]">
                         Judul
@@ -39,9 +37,9 @@ const UploadArtikel = () => {
                             className="h-12.25 appearance-none rounded border border-[#adadad] bg-[linear-gradient(45deg,transparent_50%,#222_50%),linear-gradient(135deg,#222_50%,transparent_50%)] bg-position-[calc(100%-20px)_21px,calc(100%-12px)_21px] bg-size-[9px_9px,9px_9px] bg-no-repeat px-3 text-sm text-[#333] outline-none focus:border-button"
                         >
                             <option value="" disabled />
-                            <option value="teknologi">Teknologi</option>
-                            <option value="bisnis">Bisnis</option>
-                            <option value="gaya-hidup">Gaya Hidup</option>
+                            {blogCategories.map((category) => (
+                                <option key={category.value} value={category.value}>{category.label}</option>
+                            ))}
                         </select>
                     </label>
 
@@ -88,7 +86,7 @@ const UploadArtikel = () => {
                     </button>
                 </form>
             </main>
-            <Footer />
+            </div>
         </>
     )
 }

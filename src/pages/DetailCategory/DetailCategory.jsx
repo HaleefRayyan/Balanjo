@@ -1,17 +1,13 @@
-import Navbar from "../../components/Navbar"
 import Search from "../../components/ui/Search"
 import ECommerceComp from "../../components/sections/ECommerceComp"
-import Footer from "../../components/sections/Footer"
 import head from "../../assets/header/header.png"
-import { useSearchParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 const DetailCategory = () => {
-    const [searchParams] = useSearchParams()
-    const category = searchParams.get("category") || "Fashion"
+    const { category } = useParams()
 
     return <>
-        <Navbar />
-        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-[196.17px] sm:px-8 lg:px-[6.5vw]">
+        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-29 lg:pt-16 sm:px-8 lg:px-[6.5vw]">
             <Search
                 className="h-10 w-full rounded-md px-4 text-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.08)] placeholder:text-[#aaa]"
                 placeholder="Search for products..."
@@ -39,7 +35,6 @@ const DetailCategory = () => {
                 <button type="button" aria-label="Next page">›</button>
             </div>
         </main>
-        <Footer />
     </>
 }
 

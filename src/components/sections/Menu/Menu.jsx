@@ -31,7 +31,7 @@ const Menu = ()=>{
     const routes = {
         Forum: "/forum",
         Blog: "/blog",
-        "E-Commerce": "/E-Commerce",
+        "E-Commerce": "/e-commerce",
     }
 
     return (

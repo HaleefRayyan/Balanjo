@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import banner from '../../assets/started/banner.png'
-import bannerDua from '../../assets/started/bannerDua.png'
-import bannerTiga from '../../assets/started/bannerTiga.png'
-import kanan from '../../assets/started/kanan.svg'
-import kiri from '../../assets/started/kiri.svg'
+import banner from '../../../assets/started/banner.png'
+import bannerDua from '../../../assets/started/bannerDua.png'
+import bannerTiga from '../../../assets/started/bannerTiga.png'
+import kanan from '../../../assets/started/kanan.svg'
+import kiri from '../../../assets/started/kiri.svg'
 
 const slides = [
     { id: 1, image: banner },
@@ -35,7 +35,7 @@ const Slider = ()=>{
 
         return(
             <>
-        <div className="relative mx-0 mt-28 h-56 w-full overflow-hidden rounded-2xl sm:mt-40 sm:h-80 lg:mx-auto lg:mt-55.75 lg:h-150 lg:w-430">
+        <div className="relative mx-auto mt-8 h-56 w-full max-w-430 overflow-hidden rounded-2xl sm:mt-20 sm:h-80 lg:mt-22.75 lg:h-150">
             <img 
                 src={slides[currentIndex].image} 
                 alt={`slide-${currentIndex}`}
@@ -70,9 +70,9 @@ const Slider = ()=>{
                 ))}
             </div>
         </div>
-        <div className="mt-8 grid grid-cols-1 justify-center gap-6 pb-4 sm:grid-cols-2 lg:mt-10 lg:mb-10 lg:flex lg:gap-10">
-            <img src={bannerDua} alt="" className="w-full lg:w-210" />
-            <img src={bannerTiga} alt="" className="w-full lg:w-210"/>
+        <div className="mx-auto mt-8 grid max-w-430 grid-cols-1 gap-6 pb-4 sm:grid-cols-2 lg:mt-10 lg:mb-10 lg:gap-10">
+            <img src={bannerDua} alt="" className="w-full" />
+            <img src={bannerTiga} alt="" className="w-full"/>
         </div>
         </>
     )

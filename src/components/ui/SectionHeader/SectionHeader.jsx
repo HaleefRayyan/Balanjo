@@ -1,16 +1,9 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-const Header = (props)=>{
+const SectionHeader = (props)=>{
     const {category,label, ket, to }= props;
-     const location = useLocation()
-
-    const alwaysHeaderPages = ["/get-started"]
-    const isHeaderLike = alwaysHeaderPages.includes(location.pathname)
-
-    // transparan HANYA kalau di halaman home DAN belum discroll
-    const isHeader = isHeaderLike 
     return (
-        <div className={` ${isHeader ? "my-16 flex h-auto flex-col gap-3 sm:my-20 lg:my-22.5 lg:h-36.5" : "hidden"}`}>
+        <div className="my-16 flex h-auto flex-col gap-3 sm:my-20 lg:my-22.5 lg:h-36.5">
         <h2 className="mb-2 text-[16px] font-medium sm:mb-3">{category}</h2>
         <h1 className="text-3xl font-bold leading-tight text-button sm:text-[35px]">{label}</h1>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
@@ -22,4 +15,4 @@ const Header = (props)=>{
     )
 }
 
-export default Header
+export default SectionHeader

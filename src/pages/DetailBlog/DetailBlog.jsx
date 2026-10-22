@@ -1,26 +1,30 @@
-import image from "../../assets/blog/image.png"
-import Navbar from "../../components/Navbar"
-import Footer from "../../components/sections/Footer"
+import { useParams } from "react-router-dom"
+import { findBlog } from "../../data/blogs"
+import NotFound from "../NotFound"
 
 const DetailBlog = () => {
-    return <section className="font-roboto text-[#111]">
-        <Navbar />
+    const { slug } = useParams()
+    const blog = findBlog(slug)
 
-        <header className="bg-background px-6 pb-12 pt-45 sm:px-12 lg:px-[8.5%]">
+    if (!blog) return <NotFound />
+
+    return <section className="font-roboto text-[#111]">
+
+        <header className="bg-background px-6 pb-12 pt-25 sm:px-12 lg:pt-12 lg:px-[8.5%]">
             <div className="mx-auto max-w-327.5">
-                <span className="inline-block rounded bg-[#f4eddb] px-2 py-1 text-[14px] text-button">Technology</span>
+                <span className="inline-block rounded bg-[#f4eddb] px-2 py-1 text-[14px] text-button">{blog.category}</span>
                 <h1 className="mt-5 text-[40px] font-bold leading-[1.15] text-[#062653]">
-                    The Scalability Solution: Understanding Layer One vs. Layer Two Blockchains
+                    {blog.title}
                 </h1>
                 <div className="mt-4 flex flex-col gap-1 text-[22px] text-[#24518b]">
-                    <span>20 Jan 2024, 8:00pm</span>
-                    <span className="text-[#062653]">by Elizabeth Slavin</span>
+                    <span>{blog.publishedAt}</span>
+                    <span className="text-[#062653]">by {blog.author}</span>
                 </div>
             </div>
         </header>
 
         <main className="mx-auto max-w-327.5 px-6 pb-24 pt-9 sm:px-10 lg:px-0">
-            <img className="mx-auto h-auto w-185.75 max-w-full" src={image} alt="Delegasi dalam konferensi internasional" />
+            <img className="mx-auto h-auto w-185.75 max-w-full" src={blog.image} alt="" />
             <article className="mt-12 text-justify text-[20px] font-light leading-none tracking-[0.04em]">
                 <p>Negara-negara Arab, seperti banyak negara di seluruh dunia, terlibat dalam berbagai peristiwa dan konflik yang melibatkan pelanggaran hukum internasional. Pelanggaran ini berkisar dari konflik bersenjata hingga masalah hak asasi manusia dan intervensi kebijakan luar negeri yang kontroversial. Meskipun tidak semua negara Arab terlibat dalam pelanggaran serupa, sejumlah peristiwa telah menimbulkan kekhawatiran di tingkat internasional.</p>
                 <h2 className="mt-7 text-[20px] font-bold leading-none">Intervensi Militer dan Konflik Bersenjata</h2>
@@ -35,8 +39,6 @@ const DetailBlog = () => {
                 <p className="mt-1">Dalam rangka mencapai perdamaian dan stabilitas di wilayah tersebut, serta untuk memastikan perlindungan hak asasi manusia yang universal, penting bagi negara-negara Arab dan komunitas internasional untuk bekerja sama dalam menegakkan hukum internasional dan memperjuangkan prinsip-prinsip keadilan, keamanan, dan kemanusiaan.</p>
             </article>
         </main>
-
-        <Footer />
     </section>
 }
 

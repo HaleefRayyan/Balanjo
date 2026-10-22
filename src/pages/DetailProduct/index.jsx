@@ -1,3 +1,3 @@
-import DetailProduct from "./DetrailProduct";
+import DetailProduct from "./DetailProduct";
 
 export default DetailProduct

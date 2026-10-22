@@ -1,8 +1,11 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { useAuth } from "../../context/auth"
 import heroBg from "../../assets/Hero/heroBg.png"
 
 const Login = () => {
 	const navigate = useNavigate()
+	const location = useLocation()
+	const { login } = useAuth()
 
 	return (
 		<main
@@ -16,13 +19,16 @@ const Login = () => {
 
 				<form className="mt-10 flex flex-1 flex-col" onSubmit={(event) => {
 					event.preventDefault()
-					navigate("/")
+		const form = new FormData(event.currentTarget)
+		login({ email: form.get("email") })
+		navigate(location.state?.from?.pathname || "/", { replace: true })
 				}}>
 					<label className="text-[16px] text-[#222]" htmlFor="email">Email</label>
 					<input
 						id="email"
 						name="email"
 						type="email"
+						required
 						placeholder="your email address"
 						className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
 					/>
@@ -34,6 +40,7 @@ const Login = () => {
 						id="password"
 						name="password"
 						type="password"
+						required
 						placeholder="your password"
 						className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
 					/>
