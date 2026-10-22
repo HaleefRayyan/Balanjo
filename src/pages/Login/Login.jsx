@@ -20,8 +20,9 @@ const Login = () => {
 				<form className="mt-10 flex flex-1 flex-col" onSubmit={(event) => {
 					event.preventDefault()
 		const form = new FormData(event.currentTarget)
-		login({ email: form.get("email") })
-		navigate(location.state?.from?.pathname || "/", { replace: true })
+		const user = login({ email: form.get("email") })
+		const home = user.role === "admin" ? "/admin" : "/"
+		navigate(location.state?.from?.pathname || home, { replace: true })
 				}}>
 					<label className="text-[16px] text-[#222]" htmlFor="email">Email</label>
 					<input

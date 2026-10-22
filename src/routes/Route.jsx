@@ -12,6 +12,14 @@ import UploadArtikel from "../pages/UploadArtikel";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import NotFound from "../pages/NotFound";
+import AdminLayout from "../layouts/AdminLayout";
+import Dashboard from "../pages/admin/Dashboard";
+import Users from "../pages/admin/Users";
+import Blogs from "../pages/admin/Blogs";
+import Forums from "../pages/admin/Forums";
+import Banners from "../pages/admin/Banners";
+import BannerRequests from "../pages/admin/BannerRequests";
+import ChangePassword from "../pages/admin/ChangePassword";
 
 const routes = [
     {
@@ -40,6 +48,24 @@ const routes = [
                 ],
             },
             { path: "*", element: <NotFound /> },
+        ],
+    },
+    {
+        path: "/admin",
+        element: <ProtectedRoute role="admin" />,
+        children: [
+            {
+                element: <AdminLayout />,
+                children: [
+                    { index: true, element: <Dashboard /> },
+                    { path: "users", element: <Users /> },
+                    { path: "blogs", element: <Blogs /> },
+                    { path: "forums", element: <Forums /> },
+                    { path: "e-commerce", element: <Banners /> },
+                    { path: "e-commerce/requests", element: <BannerRequests /> },
+                    { path: "password", element: <ChangePassword /> },
+                ],
+            },
         ],
     },
     { path: "/login", element: <Login /> },

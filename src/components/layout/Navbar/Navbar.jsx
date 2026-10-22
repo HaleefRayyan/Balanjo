@@ -82,6 +82,9 @@ const Navbar = ({ overlay = false }) => {
                                 <li className="mt-2 border-t border-gray-200 pt-5 lg:hidden">
                                     <span className="text-button">{user.name}</span>
                                 </li>
+                                {user.role === "admin" && (
+                                    <li className="lg:hidden"><Link to="/admin">Admin Panel</Link></li>
+                                )}
                                 <li className="lg:hidden">
                                     <button type="button" className="inline-flex rounded-md bg-button px-4 py-2 text-sm text-white" onClick={handleLogout}>Logout</button>
                                 </li>
@@ -120,6 +123,9 @@ const Navbar = ({ overlay = false }) => {
                             </button>
                             {isUserMenuOpen && (
                                 <div className="absolute right-0 top-full mt-3 w-44 rounded-lg bg-white py-2 shadow-lg">
+                                    {user.role === "admin" && (
+                                        <Link to="/admin" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Admin Panel</Link>
+                                    )}
                                     <button type="button" onClick={handleLogout} className="w-full px-4 py-2 text-left text-[16px] text-black hover:bg-background">
                                         Logout
                                     </button>

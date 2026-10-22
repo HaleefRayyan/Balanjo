@@ -45,7 +45,7 @@ const ForumComp = ({ showHeader = false })=>{
 
             <div className="order-1 space-y-5 lg:order-2">
                 {forumPosts.map((post) => (
-                    <article className="relative min-h-24 rounded-lg bg-white px-4 py-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] sm:px-5" key={post.text}>
+                    <article className="relative min-h-24 rounded-lg bg-white px-4 py-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] sm:px-5" key={post.id}>
                         <div className="flex gap-3">
                                     <div className="w-12 shrink-0">
                                         <img
@@ -58,7 +58,7 @@ const ForumComp = ({ showHeader = false })=>{
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                                <p className="text-[20px] font-semibold leading-tight">mrc1na</p>
+                                                <p className="text-[20px] font-semibold leading-tight">{post.author}</p>
                                                 <p className="mt-1 text-[20px] leading-tight text-[#222]">{post.text}</p>
                                     </div>
                                             <span className="shrink-0 rounded-full border border-[#E8E8E8] px-3 py-1 text-[14px] text-[#777]">

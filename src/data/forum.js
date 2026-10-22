@@ -21,6 +21,10 @@ export const trendingTopics = [
 
 export const forumPosts = [
     {
+        id: 1,
+        author: "mrc1na",
+        date: "06/07/2024",
+        replyCount: 2,
         profile: profileNoLine,
         line: profileMidLine,
         people: true,
@@ -30,6 +34,10 @@ export const forumPosts = [
         replies: "2 balasan",
     },
     {
+        id: 2,
+        author: "mrc1na",
+        date: "05/07/2024",
+        replyCount: 14,
         profile: profileNoLine,
         line: profileHighLine,
         people: true,
@@ -40,6 +48,10 @@ export const forumPosts = [
         image: postImage,
     },
     {
+        id: 3,
+        author: "mrc1na",
+        date: "03/07/2024",
+        replyCount: 0,
         profile: profileNoLine,
         text: "Ig Error ya?",
         category: "Tech",
