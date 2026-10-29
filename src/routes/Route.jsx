@@ -15,6 +15,9 @@ import Register from "../pages/Register";
 import NotFound from "../pages/NotFound";
 import Cart from "../pages/Cart";
 import Orders from "../pages/Orders";
+import Profile from "../pages/Profile";
+import EditArtikel from "../pages/EditArtikel";
+import EditDiscussion from "../pages/EditDiscussion";
 import Seller from "../pages/Seller";
 import SellerProductForm from "../pages/SellerProductForm";
 import ForumDetail from "../pages/ForumDetail";
@@ -42,7 +45,10 @@ const routes = [
                     { index: true, element: <Forum /> },
                     {
                         element: <ProtectedRoute />,
-                        children: [{ path: "new", element: <NewDiscussion /> }],
+                        children: [
+                            { path: "new", element: <NewDiscussion /> },
+                            { path: ":id/edit", element: <EditDiscussion /> },
+                        ],
                     },
                     { path: ":id", element: <ForumDetail /> },
                 ],
@@ -53,7 +59,10 @@ const routes = [
                     { index: true, element: <Blog /> },
                     {
                         element: <ProtectedRoute />,
-                        children: [{ path: "new", element: <UploadArtikel /> }],
+                        children: [
+                            { path: "new", element: <UploadArtikel /> },
+                            { path: ":slug/edit", element: <EditArtikel /> },
+                        ],
                     },
                     { path: ":slug", element: <DetailBlog /> },
                 ],
@@ -71,6 +80,7 @@ const routes = [
                 element: <ProtectedRoute />,
                 children: [
                     { path: "orders", element: <Orders /> },
+                    { path: "profile", element: <Profile /> },
                     { path: "seller", element: <Seller /> },
                     { path: "seller/products/new", element: <SellerProductForm /> },
                     { path: "seller/products/:id/edit", element: <SellerProductForm /> },

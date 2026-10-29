@@ -26,10 +26,11 @@ const AuthProvider = ({ children }) => {
         return nextUser
     }
 
-    const logout = async () => {
-        await logoutRequest()
-        setUser(null)
-        queryClient.removeQueries({ queryKey: ["admin"] })
+    // Muat ulang penuh ke `redirectTo` setelah logout: semua data pribadi di cache ikut hilang, dan
+    // halaman yang dilindungi (mis. /profile) tidak sempat mengalihkan ke /login lebih dulu.
+    const logout = async (redirectTo = "/") => {
+        await logoutRequest().catch(() => {}) // server tidak bisa dihubungi: tetap pindah halaman
+        window.location.assign(redirectTo)
     }
 
     return (

@@ -45,11 +45,18 @@ You can also run them separately with `npm run dev` (website) and `npm run dev:s
 
 Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, anto@, mrc1na@, elizabeth@ `gmail.com`). Logging in as an admin opens the admin panel at `/admin`.
 
+## Your account
+
+- **Profil Saya** (`/profile`, in the user menu): change your name, email and profile photo, change your password, and see **Artikel Saya** and **Diskusi Saya**, where you can edit or delete what you posted.
+- Authors (and admins) see **Edit** and **Hapus** on their own articles and discussions. Editing an article keeps its URL (slug).
+- Reply authors can delete their own replies, and admins can delete any reply.
+
 ## Selling and orders
 
 - Any logged-in user can sell. Open **Toko Saya** (`/seller`) from the user menu to add products, handle incoming orders (status: Menunggu konfirmasi → Diproses → Dikirim → Selesai, or Dibatalkan), and request promo banners. Banners approved by an admin appear in the Get Started slider.
 - **Pesanan Saya** (`/orders`) lists your orders. You can cancel an order until a seller starts processing it.
 - Each order item has its own status, because one order can contain products from several sellers.
+- Products have a **stock** count set by the seller. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
 
 ## Database
 

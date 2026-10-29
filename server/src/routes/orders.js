@@ -43,9 +43,28 @@ router.post("/", async (req, res) => {
     })
     const total = lines.reduce((sum, line) => sum + line.price * line.quantity, 0)
 
-    const order = await prisma.order.create({
-        data: { userId: req.user.id, total, items: { create: lines } },
-        include: withItems,
+    // jumlah per produk (variasi berbeda dari produk yang sama memakai stok yang sama)
+    const needed = new Map()
+    for (const line of lines) needed.set(line.productId, (needed.get(line.productId) ?? 0) + line.quantity)
+
+    // Stok dikurangi dalam satu transaksi: kalau ada yang kurang, semuanya dibatalkan.
+    // `stock >= jumlah` dicek di query update sendiri, jadi dua pembeli tidak bisa mengambil stok terakhir bersamaan.
+    const order = await prisma.$transaction(async (tx) => {
+        for (const [productId, quantity] of needed) {
+            const { count } = await tx.product.updateMany({
+                where: { id: productId, stock: { gte: quantity } },
+                data: { stock: { decrement: quantity } },
+            })
+            if (count === 0) {
+                const product = byId.get(productId)
+                const left = (await tx.product.findUnique({ where: { id: productId } }))?.stock ?? 0
+                throw new HttpError(400, left > 0 ? `Stok ${product.name} tinggal ${left}.` : `Stok ${product.name} habis.`)
+            }
+        }
+        return tx.order.create({
+            data: { userId: req.user.id, total, items: { create: lines } },
+            include: withItems,
+        })
     })
     res.status(201).json({ order: serializeOrder(order) })
 })
@@ -64,10 +83,20 @@ router.get("/", async (req, res) => {
 router.post("/:id/cancel", async (req, res) => {
     const order = await prisma.order.findUnique({ where: { id: parseId(req.params.id) }, include: { items: true } })
     if (!order || order.userId !== req.user.id) throw notFound("Pesanan")
+    if (order.items.every((item) => item.status === "CANCELLED")) throw new HttpError(400, "Pesanan ini sudah dibatalkan.")
     if (order.items.some((item) => item.status !== "PENDING")) {
         throw new HttpError(400, "Pesanan sudah diproses seller dan tidak bisa dibatalkan.")
     }
-    await prisma.orderItem.updateMany({ where: { orderId: order.id }, data: { status: "CANCELLED" } })
+    // Batalkan semua item lalu kembalikan stoknya (kalau produknya masih ada).
+    // Update hanya berlaku untuk item yang MASIH PENDING: kalau dua permintaan batal datang bersamaan
+    // atau seller memproses di saat yang sama, hanya satu yang lolos (stok tidak kembali dua kali).
+    await prisma.$transaction(async (tx) => {
+        const { count } = await tx.orderItem.updateMany({ where: { orderId: order.id, status: "PENDING" }, data: { status: "CANCELLED" } })
+        if (count !== order.items.length) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
+        for (const item of order.items.filter((line) => line.productId)) {
+            await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
+        }
+    })
     const updated = await prisma.order.findUnique({ where: { id: order.id }, include: withItems })
     res.json({ order: serializeOrder(updated) })
 })

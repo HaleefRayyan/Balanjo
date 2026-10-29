@@ -8,6 +8,7 @@ import { prisma } from "../db.js"
 import { clearAuthCookie, requireAuth, setAuthCookie } from "../middleware/auth.js"
 import { HttpError, parse } from "../utils/http.js"
 import { serializeUser } from "../utils/serialize.js"
+import { fileUrl, removeUpload, upload } from "../utils/uploads.js"
 
 const router = Router()
 
@@ -64,6 +65,31 @@ router.post("/logout", (req, res) => {
 
 router.get("/me", (req, res) => {
     res.json({ user: req.user ? serializeUser(req.user) : null })
+})
+
+// ---------- Profil ----------
+
+router.patch("/me", requireAuth, async (req, res) => {
+    const data = parse(z.object({ name: z.string().trim().min(1, "Nama wajib diisi.").max(80), email }), req.body)
+    if (data.email !== req.user.email && await prisma.user.findUnique({ where: { email: data.email } })) {
+        throw new HttpError(409, "Email sudah dipakai akun lain.")
+    }
+    const user = await prisma.user.update({ where: { id: req.user.id }, data })
+    res.json({ user: serializeUser(user) })
+})
+
+// multipart: image
+router.put("/me/avatar", requireAuth, upload.single("image"), async (req, res) => {
+    if (!req.file) throw new HttpError(400, "Pilih foto profil.")
+    const user = await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: fileUrl(req.file) } })
+    await removeUpload(req.user.avatarUrl)
+    res.json({ user: serializeUser(user) })
+})
+
+router.delete("/me/avatar", requireAuth, async (req, res) => {
+    const user = await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: null } })
+    await removeUpload(req.user.avatarUrl)
+    res.json({ user: serializeUser(user) })
 })
 
 router.post("/change-password", requireAuth, async (req, res) => {

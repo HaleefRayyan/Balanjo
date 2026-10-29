@@ -25,7 +25,7 @@ const BlogComp = ({ blogs, limit, showHeader = false, emptyText = "Belum ada art
                 <span className="text-md h-7 w-fit rounded-md bg-amber-100 px-2 py-1 leading-5 text-button">{item.category}</span>
                 <p className="text-[20px] font-semibold">{item.title}</p>
                 <div className="flex flex-row gap-3.5 items-center text-abu">
-                    <img src={authorPhoto} alt="" />
+                    <img src={item.authorAvatar ?? authorPhoto} alt="" className="h-8.5 w-8.5 rounded-full object-cover" />
                     <span>{item.author}</span>
                     <span>{formatLongDate(new Date(item.createdAt))}</span>
                 </div>

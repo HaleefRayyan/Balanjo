@@ -16,6 +16,7 @@ const ProductDetail = ({ product }) => {
     const { addItem } = useCart()
     const { user } = useAuth()
     const isOwnProduct = user && product.sellerId === user.id
+    const soldOut = product.stock === 0
     const [quantity, setQuantity] = useState(1)
     const [variant, setVariant] = useState("")
     const [message, setMessage] = useState(null)
@@ -26,8 +27,9 @@ const ProductDetail = ({ product }) => {
             setMessage({ type: "error", text: "Pilih variasi dulu ya." })
             return
         }
-        addItem(product.id, variant || undefined, quantity)
-        setMessage({ type: "success", text: `${quantity} × ${product.name} ditambahkan ke keranjang.` })
+        const amount = Math.min(quantity, product.stock)
+        addItem(product.id, variant || undefined, amount)
+        setMessage({ type: "success", text: `${amount} × ${product.name} ditambahkan ke keranjang.` })
     }
 
     return (
@@ -46,6 +48,7 @@ const ProductDetail = ({ product }) => {
 
                     <div className="mt-4 flex items-center gap-3">
                         <span className="text-xl font-medium">{formatRupiah(product.price)}</span>
+                        <span className={`text-sm ${soldOut ? "font-medium text-red-600" : "text-abu"}`}>{soldOut ? "Stok habis" : `Stok: ${product.stock}`}</span>
                     </div>
 
                     {product.variants.length > 0 && (
@@ -69,8 +72,10 @@ const ProductDetail = ({ product }) => {
                         </p>
                     ) : (
                         <>
-                            <QuantityInput className="mt-7 h-11" value={quantity} onChange={setQuantity} />
-                            <Button className="mt-3 h-11 w-full rounded-md text-sm" onClick={handleAdd}>Tambah ke Keranjang</Button>
+                            <QuantityInput className="mt-7 h-11" value={Math.min(quantity, Math.max(1, product.stock))} onChange={setQuantity} max={Math.max(1, product.stock)} />
+                            <Button className="mt-3 h-11 w-full rounded-md text-sm disabled:cursor-not-allowed disabled:opacity-50" onClick={handleAdd} disabled={soldOut}>
+                                {soldOut ? "Stok habis" : "Tambah ke Keranjang"}
+                            </Button>
                         </>
                     )}
 

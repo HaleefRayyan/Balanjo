@@ -152,7 +152,7 @@ const main = async () => {
         products.push(await prisma.product.create({
             data: {
                 name: template.name, category: template.category, price: template.price, description: template.description,
-                variants: JSON.stringify(template.variants), photoUrl: await copyAsset(template.photo),
+                variants: JSON.stringify(template.variants), photoUrl: await copyAsset(template.photo), stock: 20,
                 sellerId: users[sellers[index % sellers.length]].id,
             },
         }))

@@ -39,6 +39,10 @@ const ProductCard = ({ product }) => {
                     <Link to="/seller" className="mt-2 flex h-9 w-full max-w-37.5 items-center justify-center rounded-md border border-button text-[11px] text-button sm:mt-4 sm:h-11 sm:text-[14px]">
                         Produk tokomu
                     </Link>
+                ) : product.stock === 0 ? (
+                    <Button disabled className="mt-2 h-9 w-full max-w-37.5 cursor-not-allowed rounded-md text-[11px] opacity-50 sm:mt-4 sm:h-11 sm:text-[14px]">
+                        Stok habis
+                    </Button>
                 ) : (
                     <Button onClick={handleAdd} aria-live="polite" className="mt-2 h-9 w-full max-w-37.5 rounded-md text-[11px] sm:mt-4 sm:h-11 sm:text-[14px]">
                         {added ? "✓ Ditambahkan" : "+ Keranjang"}

@@ -25,6 +25,12 @@ const Cart = () => {
     const lines = items.filter((item) => byId.has(item.productId)).map((item) => ({ ...item, product: byId.get(item.productId) }))
     const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
 
+    // jumlah per produk dibanding stok (variasi berbeda memakai stok yang sama)
+    const inCart = new Map()
+    for (const line of lines) inCart.set(line.productId, (inCart.get(line.productId) ?? 0) + line.quantity)
+    const overStock = (line) => inCart.get(line.productId) > line.product.stock
+    const hasStockProblem = lines.some(overStock)
+
     // produk yang sudah dihapus seller/admin dibuang dari keranjang
     const missing = products.isSuccess && !products.isPlaceholderData ? ids.filter((id) => !byId.has(id)) : []
     const missingKey = missing.join(",")
@@ -81,6 +87,11 @@ const Cart = () => {
                                     <div className="min-w-0">
                                         <Link to={`/e-commerce/product/${line.productId}`} className="font-medium text-[#2d2d2d] hover:text-button">{line.product.name}</Link>
                                         {line.variant && <p className="text-sm text-abu">Variasi: {line.variant}</p>}
+                                        {overStock(line) && (
+                                            <p className="text-sm font-medium text-red-600">
+                                                {line.product.stock === 0 ? "Stok habis — hapus dari keranjang." : `Stok tersisa ${line.product.stock}. Kurangi jumlahnya.`}
+                                            </p>
+                                        )}
                                     </div>
                                     <button type="button" aria-label={`Hapus ${line.product.name}`} className="cursor-pointer rounded-md p-1 text-button hover:bg-button/10" onClick={() => removeItem(line.key)}>
                                         <TrashIcon className="h-5 w-5" />
@@ -106,7 +117,8 @@ const Cart = () => {
                         <span>{formatRupiah(subtotal)}</span>
                     </div>
                     {createOrder.isError && <p role="alert" className="mt-4 text-sm text-red-600">{createOrder.error.message}</p>}
-                    <Button className="mt-6 h-11 w-full rounded-md text-sm disabled:cursor-wait disabled:opacity-60" onClick={handleCheckout} disabled={createOrder.isPending}>
+                    {hasStockProblem && <p className="mt-4 text-sm text-red-600">Ada produk yang melebihi stok.</p>}
+                    <Button className="mt-6 h-11 w-full rounded-md text-sm disabled:cursor-not-allowed disabled:opacity-60" onClick={handleCheckout} disabled={createOrder.isPending || hasStockProblem}>
                         {createOrder.isPending ? "Memproses..." : user ? "Checkout" : "Login untuk checkout"}
                     </Button>
                     <Link to="/e-commerce" className="mt-3 block text-center text-sm text-button hover:underline">Lanjut belanja</Link>

@@ -25,6 +25,18 @@ export const useCreateBlog = () => {
     })
 }
 
+// Edit artikel (slug tetap). formData: title, category, body, image (opsional), removeImage=1
+export const useUpdateBlog = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, formData }) => api(`/blogs/${id}`, { method: "PUT", body: formData }).then((data) => data.blog),
+        onSuccess: (blog) => {
+            queryClient.setQueryData(["blog", blog.slug], blog)
+            queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        },
+    })
+}
+
 export const useDeleteBlog = () => {
     const queryClient = useQueryClient()
     return useMutation({

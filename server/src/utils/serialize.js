@@ -6,6 +6,7 @@ export const serializeUser = (user) => ({
     username: user.username,
     email: user.email,
     role: user.role === "ADMIN" ? "admin" : "user",
+    avatar: user.avatarUrl ?? null,
     joinedAt: user.createdAt,
 })
 
@@ -16,6 +17,7 @@ export const serializeBlog = (blog, { withBody = false } = {}) => ({
     category: blog.category,
     cover: blog.coverUrl,
     author: blog.author?.name,
+    authorAvatar: blog.author?.avatarUrl ?? null,
     authorId: blog.authorId,
     createdAt: blog.createdAt,
     ...(withBody && { body: blog.body }),
@@ -25,6 +27,7 @@ export const serializeComment = (comment) => ({
     id: comment.id,
     text: comment.text,
     author: comment.author?.name,
+    authorAvatar: comment.author?.avatarUrl ?? null,
     authorId: comment.authorId,
     createdAt: comment.createdAt,
 })
@@ -35,6 +38,7 @@ export const serializeForumPost = (post) => ({
     category: post.category,
     image: post.imageUrl,
     author: post.author?.name,
+    authorAvatar: post.author?.avatarUrl ?? null,
     authorId: post.authorId,
     createdAt: post.createdAt,
     commentCount: post._count?.comments ?? post.comments?.length ?? 0,
@@ -49,6 +53,7 @@ export const serializeProduct = (product) => ({
     description: product.description,
     photo: product.photoUrl,
     variants: JSON.parse(product.variants),
+    stock: product.stock,
     seller: product.seller?.name ?? null,
     sellerId: product.sellerId,
 })

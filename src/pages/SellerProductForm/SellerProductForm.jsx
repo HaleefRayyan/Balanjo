@@ -51,7 +51,7 @@ const ProductForm = ({ product }) => {
                     <input name="name" required maxLength={100} defaultValue={product?.name} className={`h-11 ${fieldClass}`} />
                 </label>
 
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-6 sm:grid-cols-3">
                     <label className={labelClass}>
                         Kategori
                         <select name="category" required defaultValue={product?.category ?? ""} className={`h-11 bg-white ${fieldClass}`}>
@@ -62,6 +62,10 @@ const ProductForm = ({ product }) => {
                     <label className={labelClass}>
                         Harga (Rp)
                         <input name="price" type="number" required min={100} max={100000000} step={1} defaultValue={product?.price} className={`h-11 ${fieldClass}`} />
+                    </label>
+                    <label className={labelClass}>
+                        Stok
+                        <input name="stock" type="number" required min={0} max={100000} step={1} defaultValue={product?.stock ?? 1} className={`h-11 ${fieldClass}`} />
                     </label>
                 </div>
 

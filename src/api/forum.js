@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "./client"
+import { api, toQuery } from "./client"
 
-// semua diskusi (dengan commentCount); filter kategori & trending dihitung di frontend
-export const useForumPosts = () =>
+// semua diskusi (dengan commentCount); filter kategori & trending dihitung di frontend.
+// params: { authorId } untuk "Diskusi Saya"
+export const useForumPosts = (params = {}) =>
     useQuery({
-        queryKey: ["forum"],
-        queryFn: () => api("/forum").then((data) => data.posts),
+        queryKey: ["forum", "list", params],
+        queryFn: () => api(`/forum${toQuery(params)}`).then((data) => data.posts),
     })
 
 // detail + semua balasan
@@ -28,6 +29,23 @@ export const useAddComment = (postId) => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn: (text) => api(`/forum/${postId}/comments`, { method: "POST", body: { text } }).then((data) => data.comment),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum"] }),
+    })
+}
+
+// formData: text, category, image (opsional), removeImage=1
+export const useUpdateForumPost = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, formData }) => api(`/forum/${id}`, { method: "PUT", body: formData }).then((data) => data.post),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum"] }),
+    })
+}
+
+export const useDeleteComment = (postId) => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (commentId) => api(`/forum/${postId}/comments/${commentId}`, { method: "DELETE" }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["forum"] }),
     })
 }

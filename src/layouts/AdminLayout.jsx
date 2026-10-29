@@ -1,21 +1,17 @@
 import { useState } from "react"
-import { Outlet, useLocation, useNavigate } from "react-router-dom"
+import { Outlet, useLocation } from "react-router-dom"
 import Sidebar from "../components/admin/Sidebar"
 import Topbar from "../components/admin/Topbar"
 import { useAuth } from "../context/auth"
 
 const AdminLayout = () => {
     const location = useLocation()
-    const navigate = useNavigate()
     const { logout } = useAuth()
     // sidebar mobile otomatis tertutup saat pindah halaman
     const [sidebar, setSidebar] = useState({ path: "", open: false })
     const sidebarOpen = sidebar.open && sidebar.path === location.pathname
 
-    const handleLogout = async () => {
-        await logout().catch(() => {})
-        navigate("/login")
-    }
+    const handleLogout = () => logout("/login")
 
     return (
         <div className="min-h-screen bg-background">

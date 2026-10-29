@@ -21,6 +21,8 @@ const productSchema = z.object({
     price: z.coerce.number({ error: "Harga harus berupa angka." }).int("Harga harus bilangan bulat.")
         .min(100, "Harga minimal Rp100.").max(100_000_000, "Harga terlalu besar."),
     description: z.string().trim().min(1, "Deskripsi wajib diisi.").max(2000, "Deskripsi maksimal 2000 karakter."),
+    stock: z.coerce.number({ error: "Stok harus berupa angka." }).int("Stok harus bilangan bulat.")
+        .min(0, "Stok tidak boleh negatif.").max(100_000, "Stok terlalu besar."),
     variants: z.string().optional().default("").transform((value) =>
         [...new Set(value.split(",").map((variant) => variant.trim()).filter(Boolean))])
         .refine((list) => list.length <= 10, "Maksimal 10 variasi.")
@@ -141,10 +143,15 @@ router.patch("/order-items/:id", async (req, res) => {
         throw new HttpError(400, "Status hanya bisa maju (Diproses → Dikirim → Selesai).")
     }
 
-    const updated = await prisma.orderItem.update({
-        where: { id: item.id },
-        data: { status },
-        include: { product: { select: { photoUrl: true } } },
+    // Hanya berlaku kalau status belum berubah sejak dibaca (mis. pembeli membatalkan bersamaan).
+    // Dibatalkan seller -> stok dikembalikan (kalau produknya masih ada).
+    const updated = await prisma.$transaction(async (tx) => {
+        const { count } = await tx.orderItem.updateMany({ where: { id: item.id, status: item.status }, data: { status } })
+        if (count === 0) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
+        if (status === "CANCELLED" && item.productId) {
+            await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
+        }
+        return tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
     })
     res.json({ item: serializeOrderItem(updated) })
 })

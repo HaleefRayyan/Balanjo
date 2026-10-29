@@ -1,6 +1,7 @@
 import logoWhite from "../../../assets/navbar/logoWhite.svg"
 import logoCoklat from "../../../assets/navbar/logoCoklat.svg"
 import Button from "../../ui/Button"
+import Avatar from "../../ui/Avatar"
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../../../context/auth"
@@ -49,10 +50,7 @@ const Navbar = ({ overlay = false }) => {
         setUserMenu({ path: location.pathname, open: !isUserMenuOpen })
     }
 
-    const handleLogout = async () => {
-        await logout().catch(() => {}) // kalau server tidak bisa dihubungi, tetap kembali ke Home
-        navigate("/")
-    }
+    const handleLogout = () => logout("/")
 
     useEffect(() => {
         const handleScroll = () => {
@@ -91,6 +89,7 @@ const Navbar = ({ overlay = false }) => {
                                 <li className="mt-2 border-t border-gray-200 pt-5 lg:hidden">
                                     <span className="text-button">{user.name}</span>
                                 </li>
+                                <li className="lg:hidden"><Link to="/profile">Profil Saya</Link></li>
                                 <li className="lg:hidden"><Link to="/orders">Pesanan Saya</Link></li>
                                 <li className="lg:hidden"><Link to="/seller">Toko Saya</Link></li>
                                 {user.role === "admin" && (
@@ -134,15 +133,14 @@ const Navbar = ({ overlay = false }) => {
                                 className={`flex items-center gap-5 text-[18px] ${navbarTransparent ? 'text-white' : 'text-black'}`}
                             >
                                 <span>{user.name}</span>
-                                <span className="flex h-15 w-15 items-center justify-center rounded-full bg-[#64708A] text-[20px] text-white">
-                                    {user.name.charAt(0).toUpperCase()}
-                                </span>
+                                <Avatar name={user.name} src={user.avatar} size="h-15 w-15" textSize="text-[20px]" />
                                 <svg className={`h-4 w-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                                     <path d="M3 6l5 5 5-5" />
                                 </svg>
                             </button>
                             {isUserMenuOpen && (
                                 <div className="absolute right-0 top-full mt-3 w-44 rounded-lg bg-white py-2 shadow-lg">
+                                    <Link to="/profile" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Profil Saya</Link>
                                     <Link to="/orders" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Pesanan Saya</Link>
                                     <Link to="/seller" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Toko Saya</Link>
                                     {user.role === "admin" && (

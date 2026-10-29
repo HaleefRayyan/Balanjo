@@ -1,4 +1,5 @@
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
+import DOMPurify from "dompurify"
 
 // Editor ringan berbasis contentEditable + document.execCommand.
 // execCommand sudah deprecated tapi masih didukung semua browser; ganti ke library (mis. TipTap)
@@ -41,8 +42,13 @@ const buttons = [
     { label: "Garis pemisah", command: "insertHorizontalRule", content: <Icon><path d="M3 10h14" /></Icon> },
 ]
 
-const RichTextEditor = ({ id, onChange, placeholder = "" }) => {
+// initialValue: HTML awal (mis. saat edit artikel); dipasang sekali, setelah itu editor tidak dikontrol
+const RichTextEditor = ({ id, onChange, placeholder = "", initialValue = "" }) => {
     const editorRef = useRef(null)
+
+    useEffect(() => {
+        editorRef.current.innerHTML = DOMPurify.sanitize(initialValue)
+    }, [initialValue])
 
     const exec = (command, value = null) => {
         editorRef.current.focus()

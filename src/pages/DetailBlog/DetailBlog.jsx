@@ -1,6 +1,8 @@
 import DOMPurify from "dompurify"
-import { useParams } from "react-router-dom"
-import { useBlog } from "../../api/blogs"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import { useBlog, useDeleteBlog } from "../../api/blogs"
+import Avatar from "../../components/ui/Avatar"
+import { useAuth } from "../../context/auth"
 import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { formatDateTime } from "../../utils/format"
 import NotFound from "../NotFound"
@@ -8,10 +10,23 @@ import NotFound from "../NotFound"
 const DetailBlog = () => {
     const { slug } = useParams()
     const { data: blog, isPending, isError, error, refetch } = useBlog(slug)
+    const { user } = useAuth()
+    const navigate = useNavigate()
+    const deleteBlog = useDeleteBlog()
 
     if (isPending) return <div className="mx-auto max-w-327.5 px-6 pt-16"><Loading /></div>
     if (isError && error.status === 404) return <NotFound />
     if (isError) return <div className="mx-auto max-w-327.5 px-6 pt-16"><ErrorMessage error={error} onRetry={refetch} /></div>
+
+    const canManage = user && (user.id === blog.authorId || user.role === "admin")
+    const handleDelete = () => {
+        if (window.confirm(`Hapus artikel "${blog.title}"?`)) {
+            deleteBlog.mutate(blog.id, {
+                onSuccess: () => navigate("/blog", { replace: true }),
+                onError: (requestError) => window.alert(requestError.message),
+            })
+        }
+    }
 
     return <section className="font-roboto text-[#111]">
 
@@ -23,8 +38,19 @@ const DetailBlog = () => {
                 </h1>
                 <div className="mt-4 flex flex-col gap-1 text-[22px] text-[#24518b]">
                     <span>{formatDateTime(new Date(blog.createdAt))}</span>
-                    <span className="text-[#062653]">by {blog.author}</span>
+                    <span className="flex items-center gap-2 text-[#062653]">
+                        {blog.authorAvatar && <Avatar name={blog.author} src={blog.authorAvatar} size="h-8 w-8" />}
+                        by {blog.author}
+                    </span>
                 </div>
+                {canManage && (
+                    <div className="mt-5 flex gap-3 font-inter text-sm">
+                        <Link to={`/blog/${blog.slug}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit artikel</Link>
+                        <button type="button" onClick={handleDelete} disabled={deleteBlog.isPending} className="cursor-pointer rounded-md border border-red-300 px-4 py-2 text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
+                            {deleteBlog.isPending ? "Menghapus..." : "Hapus"}
+                        </button>
+                    </div>
+                )}
             </div>
         </header>
 
