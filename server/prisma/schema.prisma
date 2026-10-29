@@ -1,14 +1,16 @@
-// Skema database Balanjo. SQLite untuk development; ganti `provider` + DATABASE_URL
-// ke "postgresql"/"mysql" untuk production (lalu buat ulang migrasi).
-// Catatan: SQLite tidak punya enum, jadi role/status disimpan sebagai String (lihat src/constants.js).
+// Skema database Balanjo (PostgreSQL di Neon).
+// DATABASE_URL = koneksi "pooled" Neon (dipakai aplikasi; aman untuk serverless di Vercel)
+// DIRECT_URL   = koneksi langsung (dipakai Prisma untuk migrasi)
+// Catatan: role/status disimpan sebagai String (lihat src/constants.js) supaya mudah diubah.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

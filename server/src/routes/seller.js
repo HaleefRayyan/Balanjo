@@ -7,7 +7,7 @@ import { ORDER_ITEM_STATUSES, PRODUCT_CATEGORIES } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeBannerRequest, serializeOrderItem, serializeProduct } from "../utils/serialize.js"
-import { fileUrl, removeUpload, upload } from "../utils/uploads.js"
+import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
 router.use(requireAuth)
@@ -44,7 +44,7 @@ router.get("/products", async (req, res) => {
     res.json({ products: products.map(serializeProduct) })
 })
 
-router.post("/products", upload.single("image"), async (req, res) => {
+router.post("/products", uploadImage, async (req, res) => {
     try {
         const data = parse(productSchema, req.body)
         if (!req.file) throw new HttpError(400, "Foto produk wajib diunggah.")
@@ -60,7 +60,7 @@ router.post("/products", upload.single("image"), async (req, res) => {
 })
 
 // foto opsional saat edit; kalau diganti, foto lama dihapus
-router.put("/products/:id", upload.single("image"), async (req, res) => {
+router.put("/products/:id", uploadImage, async (req, res) => {
     try {
         const product = await findOwnProduct(req)
         const data = parse(productSchema, req.body)

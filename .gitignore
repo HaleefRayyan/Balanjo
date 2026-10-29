@@ -29,3 +29,6 @@ server/prisma/*.db
 server/prisma/*.db-journal
 server/uploads/*
 !server/uploads/.gitkeep
+
+# Vercel CLI
+.vercel

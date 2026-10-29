@@ -27,7 +27,7 @@ export const createApp = () => {
                 // frontend memuat Google Fonts dan memakai blob: untuk pratinjau gambar
                 "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
                 "font-src": ["'self'", "https://fonts.gstatic.com"],
-                "img-src": ["'self'", "data:", "blob:"],
+                "img-src": ["'self'", "data:", "blob:", "https://*.public.blob.vercel-storage.com"],
             },
         },
     }))
@@ -57,7 +57,7 @@ export const createApp = () => {
     app.use((error, req, res, next) => {
         if (error instanceof HttpError) return res.status(error.status).json({ error: error.message })
         if (error instanceof multer.MulterError) {
-            const message = error.code === "LIMIT_FILE_SIZE" ? "Ukuran gambar maksimal 5 MB." : "Upload gambar gagal."
+            const message = error.code === "LIMIT_FILE_SIZE" ? "Ukuran gambar maksimal 4 MB." : "Upload gambar gagal."
             return res.status(400).json({ error: message })
         }
         if (error.type === "entity.parse.failed") return res.status(400).json({ error: "Body JSON tidak valid." })

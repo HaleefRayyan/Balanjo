@@ -8,7 +8,7 @@ import { prisma } from "../db.js"
 import { clearAuthCookie, requireAuth, setAuthCookie } from "../middleware/auth.js"
 import { HttpError, parse } from "../utils/http.js"
 import { serializeUser } from "../utils/serialize.js"
-import { fileUrl, removeUpload, upload } from "../utils/uploads.js"
+import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
 
@@ -79,7 +79,7 @@ router.patch("/me", requireAuth, async (req, res) => {
 })
 
 // multipart: image
-router.put("/me/avatar", requireAuth, upload.single("image"), async (req, res) => {
+router.put("/me/avatar", requireAuth, uploadImage, async (req, res) => {
     if (!req.file) throw new HttpError(400, "Pilih foto profil.")
     const user = await prisma.user.update({ where: { id: req.user.id }, data: { avatarUrl: fileUrl(req.file) } })
     await removeUpload(req.user.avatarUrl)

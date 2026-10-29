@@ -3,7 +3,8 @@
 Campus community site with three features: **Forum**, **Blog**, and **E-Commerce** for student businesses, plus an **admin panel**.
 
 - **Frontend:** React 19 + Vite + Tailwind CSS 4, React Router, TanStack Query (repo root)
-- **Backend:** Node.js + Express 5 + Prisma + SQLite (`server/`)
+- **Backend:** Node.js + Express 5 + Prisma + PostgreSQL on [Neon](https://neon.tech) (`server/`)
+- **Hosting:** [Vercel](https://vercel.com) (website + API as serverless functions), images in Vercel Blob
 
 ## Requirements
 
@@ -11,13 +12,24 @@ Campus community site with three features: **Forum**, **Blog**, and **E-Commerce
 
 ## First-time setup
 
-From the repo root:
+You don't need to install a database. Development uses your own copy ("branch") of the Neon database.
 
-```bash
-npm run setup
-```
+1. **Neon:** sign in at [console.neon.tech](https://console.neon.tech) and open the Balanjo project (or create one; pick the **AWS Singapore** region).
+   - Go to **Branches → New branch**, name it after yourself (e.g. `dev-budi`), and create it from `main`. Each developer gets their own branch, so nobody overwrites anyone else's data. Never develop on `main`: that's the live site's data.
+   - Click **Connect**, choose your branch, and copy two connection strings: the **pooled** one (its host contains `-pooler`) and the **direct** one (turn "Connection pooling" off).
+2. From the repo root, run:
+   ```bash
+   npm run setup
+   ```
+   The first time, this installs the dependencies, creates `server/.env`, and stops to ask for the database addresses.
+3. In `server/.env`, set:
+   ```
+   DATABASE_URL="<pooled string>&pgbouncer=true&connect_timeout=15"
+   DIRECT_URL="<direct string>&connect_timeout=15"
+   ```
+4. Run `npm run setup` again. It creates the tables and fills your branch with sample data.
 
-This installs the frontend and backend dependencies, creates `server/.env` with a random `JWT_SECRET`, creates the SQLite database (`server/prisma/dev.db`), and fills it with sample data.
+Running `npm run setup` again later is safe: it only applies new migrations and never deletes data.
 
 ## Running the app
 
@@ -60,16 +72,18 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 
 ## Database
 
-> **After pulling new changes**, run `npm run setup` again (or `npx prisma migrate deploy` in `server/`) to apply new migrations. It keeps your existing data.
+> **After pulling new changes**, run `npm run setup` again (or `npm run db:migrate` in `server/`) to apply new migrations. It keeps your existing data.
 
 | Command (run in `server/`) | What it does |
 |---|---|
-| `npm run db:reset` | **Deletes all data**, recreates the tables, and reloads the sample data |
+| `npm run db:migrate` | Applies new migrations (safe, keeps data) |
+| `npm run db:reset` | **Deletes all data** on the branch in `server/.env`, recreates the tables, and reloads the sample data. Only use it on your own dev branch |
 | `npm run db:studio` | Opens Prisma Studio, a browser UI for viewing and editing the data |
+| `npm run create-admin -- --email <email> --name "<name>"` | Creates an admin account (or turns an existing account into one), asking for the password in the terminal |
 
-- The schema is in `server/prisma/schema.prisma`. After changing it, run `npx prisma migrate dev --name <change>` to create a migration.
-- Uploaded images are saved to `server/uploads/`. Uploads, the database and `.env` are not committed to Git.
-- To use PostgreSQL or MySQL instead of SQLite, change `provider` in the schema and `DATABASE_URL` in `server/.env`, then create the migrations again.
+- The schema is in `server/prisma/schema.prisma`. After changing it, run `npx prisma migrate dev --name <change>` to create a migration and commit the new folder in `server/prisma/migrations/`.
+- Locally, uploaded images go to `server/uploads/`. On Vercel they go to Vercel Blob. Uploads, local data and `.env` are not committed to Git.
+- Neon's free plan pauses the database after a few minutes without traffic, so the first request after a pause takes a moment longer.
 
 ## Forgot password
 
@@ -80,6 +94,8 @@ No email service is connected yet. When someone requests a reset, the API prints
 ```
 
 Open that link to set a new password. Each link works once and expires after one hour.
+
+On Vercel, the same line appears in the project's **Logs** tab. Connecting an email service is still on the to-do list.
 
 ## Project structure
 
@@ -95,25 +111,50 @@ src/
 server/
   prisma/       schema, migrations, seed script
   src/routes/   auth, blogs, forum, products, orders, banners, admin
-  src/utils/    validation, uploads, HTML sanitizing, response shapes
+  src/utils/    validation, uploads (Blob or local folder), HTML sanitizing, response shapes
+  scripts/      setup, create-admin
+api/index.js    Vercel function entry: runs the same Express app for /api/*
+vercel.json     Vercel build settings and routing
 ```
 
 ## Security notes
 
 - Passwords are hashed with bcrypt. Logins use an httpOnly, SameSite=Lax cookie, which page scripts cannot read and which is not sent on cross-site form posts.
 - Article HTML is sanitized on the server when saved and again with DOMPurify when shown.
-- Uploads accept JPG, PNG, WEBP and GIF up to 5 MB. SVG is rejected because it can contain scripts.
+- Uploads accept JPG, PNG, WEBP and GIF up to 4 MB (Vercel's request limit is about 4.5 MB). SVG is rejected because it can contain scripts.
+- The sample-data seed refuses to run in production, because its accounts have publicly known passwords.
 - Login, register and password-reset requests are rate-limited per IP address.
 - Order prices are always recalculated on the server from the database.
 
-## Production build
+## Deploying to Vercel
 
-```bash
-npm run build                # builds the website into dist/
-npm --prefix server start    # the API also serves dist/ when it exists
-```
+The website and the API deploy together as one Vercel project, on one address, so the login cookie works without extra setup. `vercel.json` already contains the build settings. Every deploy installs both packages, applies new database migrations, and builds the website.
 
-Set `NODE_ENV=production` (this enables secure cookies, which need HTTPS), a strong `JWT_SECRET`, and `CLIENT_URL` (used in reset links) in `server/.env`.
+**One-time setup:**
+
+1. **Production database:** in Neon, the `main` branch is production. Copy its pooled and direct connection strings, as in First-time setup.
+2. **Create the project:** in Vercel, **Add New → Project** and import `HaleefRayyan/Balanjo` from GitHub. Leave the build settings as detected.
+3. **Production branch:** under **Settings → Git**, set the **production branch** to the branch to publish (normally `main`, once the work is merged).
+4. **Image storage:** under **Storage → Create → Blob**, connect it to the project. This adds `BLOB_READ_WRITE_TOKEN` automatically.
+5. **Environment variables:** under **Settings → Environment Variables**, add these for **Production**:
+
+   | Name | Value |
+   |---|---|
+   | `DATABASE_URL` | Neon `main` pooled string + `&pgbouncer=true&connect_timeout=15` |
+   | `DIRECT_URL` | Neon `main` direct string + `&connect_timeout=15` |
+   | `JWT_SECRET` | A long random string. Generate one with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+   | `CLIENT_URL` | The site address, e.g. `https://balanjo.vercel.app` (used in password-reset links) |
+
+   For **Preview** deployments (other branches and pull requests), use a separate Neon branch such as `preview`. Preview builds run migrations, so they must never point at `main`.
+6. **Deploy** (Deployments → Redeploy, or push to the production branch).
+7. **Create the first admin.** The production database starts empty, with no sample data. In PowerShell, from the repo root:
+   ```powershell
+   $env:DATABASE_URL="<main pooled string>"; $env:DIRECT_URL="<main direct string>"
+   npm --prefix server run create-admin -- --email admin@yourdomain.com --name "Admin Balanjo"
+   ```
+   Then close that terminal, so the production addresses don't stay set.
+
+After that, every push to the production branch redeploys automatically.
 
 ## Other scripts
 
@@ -121,3 +162,4 @@ Set `NODE_ENV=production` (this enables secure cookies, which need HTTPS), a str
 |---|---|
 | `npm run lint` | ESLint for the frontend and backend |
 | `npm run build` | Production build of the website |
+| `npm run dev:all` | Website + API together for local development |

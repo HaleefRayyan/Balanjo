@@ -1,21 +1,28 @@
 // Mengisi database dengan data contoh (dijalankan oleh `npm run db:reset` / `npm run setup`).
-// Gambar disalin dari aset frontend ke server/uploads, satu file per record.
+// Gambar dari aset frontend disimpan seperti upload biasa (folder server/uploads, atau Vercel Blob
+// kalau BLOB_READ_WRITE_TOKEN diisi), satu file per record.
+// JANGAN untuk production: akun contoh memakai password yang diketahui umum.
 import fs from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import bcrypt from "bcryptjs"
 import { PrismaClient } from "@prisma/client"
+import { EXTENSIONS, saveBuffer } from "../src/utils/uploads.js"
+
+if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+    console.error("Seed data contoh tidak boleh dijalankan di production. Buat admin dengan `npm run create-admin`.")
+    process.exit(1)
+}
 
 const prisma = new PrismaClient()
 const here = path.dirname(fileURLToPath(import.meta.url))
 const assetsDir = path.resolve(here, "..", "..", "src", "assets")
 const uploadDir = path.resolve(here, "..", "uploads")
+const contentTypes = Object.fromEntries(Object.entries(EXTENSIONS).map(([type, ext]) => [ext, type]))
 
-let counter = 0
 const copyAsset = async (relative) => {
-    const name = `seed-${++counter}${path.extname(relative)}`
-    await fs.copyFile(path.join(assetsDir, relative), path.join(uploadDir, name))
-    return `/uploads/${name}`
+    const ext = path.extname(relative)
+    return saveBuffer(await fs.readFile(path.join(assetsDir, relative)), ext, contentTypes[ext])
 }
 
 const daysAgo = (days, hour = 9) => {
@@ -28,7 +35,13 @@ const daysAgo = (days, hour = 9) => {
 const paragraphs = (...items) => items.map((text) => `<p>${text}</p>`).join("\n")
 
 const main = async () => {
-    // kosongkan folder uploads (kecuali .gitkeep) supaya tidak menumpuk file lama
+    // seed hanya untuk database kosong (setup ulang tidak menggandakan data)
+    if (await prisma.user.count() > 0) {
+        console.log("Database sudah berisi data, seed dilewati. Untuk mengulang dari awal: `npm run db:reset`.")
+        return
+    }
+
+    // kosongkan folder uploads lokal (kecuali .gitkeep) supaya tidak menumpuk file lama
     await fs.mkdir(uploadDir, { recursive: true })
     for (const file of await fs.readdir(uploadDir)) {
         if (file !== ".gitkeep") await fs.unlink(path.join(uploadDir, file))

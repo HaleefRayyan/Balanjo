@@ -25,7 +25,7 @@ router.get("/", async (req, res) => {
 
     const where = {
         ...(query.category && { category: query.category }),
-        ...(query.q && { name: { contains: query.q } }),
+        ...(query.q && { name: { contains: query.q, mode: "insensitive" } }),
         ...(query.ids && { id: { in: query.ids.split(",").map(Number) } }),
         ...(query.excludeId && { NOT: { id: query.excludeId } }),
     }

@@ -5,7 +5,7 @@ import { FORUM_CATEGORIES } from "../constants.js"
 import { isOwnerOrAdmin, requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeComment, serializeForumPost } from "../utils/serialize.js"
-import { fileUrl, removeUpload, upload } from "../utils/uploads.js"
+import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
 const withAuthor = { author: { select: { name: true, avatarUrl: true } } }
@@ -41,7 +41,7 @@ const postSchema = z.object({
 })
 
 // multipart/form-data: text, category, image (opsional)
-router.post("/", requireAuth, upload.single("image"), async (req, res) => {
+router.post("/", requireAuth, uploadImage, async (req, res) => {
     try {
         const data = parse(postSchema, req.body)
         const post = await prisma.forumPost.create({
@@ -67,7 +67,7 @@ router.post("/:id/comments", requireAuth, async (req, res) => {
 })
 
 // Edit oleh penulis/admin. multipart: text, category, image (opsional, mengganti foto), removeImage=1
-router.put("/:id", requireAuth, upload.single("image"), async (req, res) => {
+router.put("/:id", requireAuth, uploadImage, async (req, res) => {
     try {
         const post = await prisma.forumPost.findUnique({ where: { id: parseId(req.params.id) } })
         if (!post) throw notFound("Diskusi")

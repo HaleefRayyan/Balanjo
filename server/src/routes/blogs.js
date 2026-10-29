@@ -6,7 +6,7 @@ import { isOwnerOrAdmin, requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeBlog } from "../utils/serialize.js"
 import { htmlToText, sanitizeArticle, slugify } from "../utils/text.js"
-import { fileUrl, removeUpload, upload } from "../utils/uploads.js"
+import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
 const withAuthor = { author: { select: { name: true, avatarUrl: true } } }
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
         where: {
             ...(query.category && { category: query.category }),
             ...(query.authorId && { authorId: query.authorId }),
-            ...(query.q && { title: { contains: query.q } }),
+            ...(query.q && { title: { contains: query.q, mode: "insensitive" } }),
         },
         include: withAuthor,
         orderBy: { createdAt: "desc" },
@@ -53,7 +53,7 @@ const parseBlog = (input) => {
 }
 
 // multipart/form-data: title, category, body (HTML dari editor), image (opsional)
-router.post("/", requireAuth, upload.single("image"), async (req, res) => {
+router.post("/", requireAuth, uploadImage, async (req, res) => {
     try {
         const { body, ...data } = parseBlog(req.body)
 
@@ -74,7 +74,7 @@ router.post("/", requireAuth, upload.single("image"), async (req, res) => {
 
 // Edit oleh penulis/admin. Slug sengaja tidak berubah supaya link lama tetap jalan.
 // multipart: title, category, body, image (opsional, mengganti cover), removeImage=1 (hapus cover)
-router.put("/:id", requireAuth, upload.single("image"), async (req, res) => {
+router.put("/:id", requireAuth, uploadImage, async (req, res) => {
     try {
         const blog = await prisma.blog.findUnique({ where: { id: parseId(req.params.id) } })
         if (!blog) throw notFound("Artikel")

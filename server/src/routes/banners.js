@@ -5,7 +5,7 @@ import { BANNER_REQUEST_STATUSES } from "../constants.js"
 import { requireAdmin, requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeBanner, serializeBannerRequest } from "../utils/serialize.js"
-import { copyUpload, fileUrl, removeUpload, upload } from "../utils/uploads.js"
+import { copyUpload, fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
 const label = z.string().trim().min(1, "Id banner wajib diisi.").max(60)
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
     res.json({ banners: banners.map(serializeBanner) })
 })
 
-router.post("/", requireAdmin, upload.single("image"), async (req, res) => {
+router.post("/", requireAdmin, uploadImage, async (req, res) => {
     try {
         const data = parse(z.object({ label }), req.body)
         if (!req.file) throw new HttpError(400, "Gambar wajib diunggah.")
@@ -31,7 +31,7 @@ router.post("/", requireAdmin, upload.single("image"), async (req, res) => {
 })
 
 // ganti gambar (label tidak bisa diubah, sama seperti form di admin)
-router.put("/:id", requireAdmin, upload.single("image"), async (req, res) => {
+router.put("/:id", requireAdmin, uploadImage, async (req, res) => {
     try {
         const banner = await prisma.banner.findUnique({ where: { id: parseId(req.params.id) } })
         if (!banner) throw notFound("Banner")
@@ -63,7 +63,7 @@ router.get("/requests", requireAdmin, async (req, res) => {
 })
 
 // Seller mengajukan banner untuk produknya sendiri (multipart: productId, image)
-router.post("/requests", requireAuth, upload.single("image"), async (req, res) => {
+router.post("/requests", requireAuth, uploadImage, async (req, res) => {
     try {
         const data = parse(z.object({ productId: z.coerce.number().int().positive() }), req.body)
         if (!req.file) throw new HttpError(400, "Gambar wajib diunggah.")
