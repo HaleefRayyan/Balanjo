@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend (server/)
+server/.env
+server/prisma/*.db
+server/prisma/*.db-journal
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Vercel CLI
+.vercel

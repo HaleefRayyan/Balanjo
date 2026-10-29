@@ -1,0 +1,147 @@
+// Skema database Balanjo (PostgreSQL di Neon).
+// DATABASE_URL = koneksi "pooled" Neon (dipakai aplikasi; aman untuk serverless di Vercel)
+// DIRECT_URL   = koneksi langsung (dipakai Prisma untuk migrasi)
+// Catatan: role/status disimpan sebagai String (lihat src/constants.js) supaya mudah diubah.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             Int                  @id @default(autoincrement())
+  name           String
+  username       String               @unique
+  email          String               @unique
+  passwordHash   String
+  role           String               @default("USER") // USER | ADMIN
+  avatarUrl      String? // foto profil (upload), null = pakai inisial nama
+  createdAt      DateTime             @default(now())
+  blogs          Blog[]
+  forumPosts     ForumPost[]
+  comments       Comment[]
+  products       Product[]
+  orders         Order[]
+  sales          OrderItem[] // item pesanan untuk produk yang dia jual
+  bannerRequests BannerRequest[]
+  resetTokens    PasswordResetToken[]
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  title     String
+  category  String
+  body      String // HTML yang sudah disanitasi saat disimpan
+  coverUrl  String?
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+model ForumPost {
+  id        Int       @id @default(autoincrement())
+  text      String
+  category  String
+  imageUrl  String?
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+
+  @@index([category])
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  text      String
+  postId    Int
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([postId])
+}
+
+model Product {
+  id             Int             @id @default(autoincrement())
+  name           String
+  category       String
+  price          Int // Rupiah
+  description    String
+  photoUrl       String
+  variants       String          @default("[]") // array JSON, mis. ["Hitam","Coklat"]
+  stock          Int             @default(0) // berkurang saat dipesan, kembali saat dibatalkan
+  sellerId       Int?
+  seller         User?           @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  orderItems     OrderItem[]
+  bannerRequests BannerRequest[]
+  createdAt      DateTime        @default(now())
+
+  @@index([category])
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total     Int
+  items     OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
+  createdAt DateTime    @default(now())
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sellerId  Int? // salinan seller saat dibeli: penjualan tetap terlihat walau produknya dihapus
+  seller    User?    @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  name      String // salinan nama & harga saat dibeli, supaya riwayat tidak berubah
+  price     Int
+  variant   String?
+  quantity  Int
+  status    String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
+
+  @@index([sellerId])
+}
+
+model Banner {
+  id        Int            @id @default(autoincrement())
+  label     String
+  imageUrl  String
+  position  Int            @default(0)
+  request   BannerRequest?
+  createdAt DateTime       @default(now())
+}
+
+model BannerRequest {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellerId  Int
+  seller    User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  status    String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  bannerId  Int?     @unique // banner yang dibuat saat disetujui
+  banner    Banner?  @relation(fields: [bannerId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique // sha256 dari token; token aslinya hanya ada di link reset
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+}

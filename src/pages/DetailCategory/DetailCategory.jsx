@@ -1,21 +1,15 @@
-import Navbar from "../../components/Navbar"
-import Search from "../../components/ui/Search"
-import ECommerceComp from "../../components/sections/ECommerceComp"
-import Footer from "../../components/sections/Footer"
+import ProductList, { ProductSearch } from "../../components/sections/ProductList"
+import useProductQuery from "../../components/sections/ProductList/useProductQuery"
 import head from "../../assets/header/header.png"
-import { useSearchParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 
 const DetailCategory = () => {
-    const [searchParams] = useSearchParams()
-    const category = searchParams.get("category") || "Fashion"
+    const { category } = useParams()
+    const [query, setQuery] = useProductQuery()
 
-    return <>
-        <Navbar />
-        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-[196.17px] sm:px-8 lg:px-[6.5vw]">
-            <Search
-                className="h-10 w-full rounded-md px-4 text-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.08)] placeholder:text-[#aaa]"
-                placeholder="Search for products..."
-            />
+    return (
+        <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-29 lg:pt-16 sm:px-8 lg:px-[6.5vw]">
+            <ProductSearch value={query} onChange={setQuery} />
 
             <section
                 className="mt-5 flex h-40 items-center justify-center rounded-lg bg-cover bg-center bg-no-repeat sm:h-44"
@@ -28,19 +22,10 @@ const DetailCategory = () => {
             </section>
 
             <div className="mt-12">
-                <ECommerceComp />
-            </div>
-
-            <div className="mt-8 flex items-center justify-end gap-5 text-[11px]">
-                <span>Showing <strong>1 to 12</strong> results of 24 results</span>
-                <button type="button" aria-label="Previous page">‹</button>
-                <button className="h-8 w-8 rounded-md bg-button text-white" type="button">1</button>
-                <button type="button">2</button>
-                <button type="button" aria-label="Next page">›</button>
+                <ProductList category={category} query={query} />
             </div>
         </main>
-        <Footer />
-    </>
+    )
 }
 
 export default DetailCategory

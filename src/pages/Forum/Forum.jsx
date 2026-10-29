@@ -1,15 +1,11 @@
-import Head from "../../components/Head"
-import Navbar from "../../components/Navbar"
+import PageBanner from "../../components/layout/PageBanner"
 import ForumComp from "../../components/sections/ForumComp"
-import Footer from "../../components/sections/Footer"
 
 const Forum = ()=>{
     return <>
-    <Navbar />
-    <Head children="Forum" />
+    <PageBanner>Forum</PageBanner>
     <div className="mt-[64.17px]"></div>
     <ForumComp />
-    <Footer />
     </>
 }
 

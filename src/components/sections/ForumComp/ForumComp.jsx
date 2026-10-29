@@ -1,127 +1,96 @@
-import Header from "../../ui/Header"
+import { useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import SectionHeader from "../../ui/SectionHeader"
 import Button from "../../ui/Button"
-import messageIcon from "../../../assets/forum/message.svg"
-import postImage from "../../../assets/forum/image.png"
-import profileHighLine from "../../../assets/forum/profileHighLine.png"
-import profileMidLine from "../../../assets/forum/profileMidLine.png"
-import profileNoLine from "../../../assets/forum/profileNoLine.png"
-import profilePeapole from "../../../assets/forum/profilePeapole.svg"
+import ForumPostCard from "./ForumPostCard"
+import { Empty, ErrorMessage, Loading } from "../../ui/Status"
+import { forumCategories } from "../../../constants/categories"
+import { useForumPosts } from "../../../api/forum"
 
-const categories = [
-    { label: "Campus Life", color: "#E7B66C" },
-    { label: "Tech", color: "#7DD4B5" },
-    { label: "Kesehatan", color: "#9580D9" },
-    { label: "Informasi", color: "#E88989" },
-    { label: "Bisnis", color: "#D881D3" },
-    { label: "Random", color: "#7CC5D8" },
-]
+const TRENDING_COUNT = 4
 
-const trendingTopics = [
-    ["Info tempat nongkrong", "di Unand dong", "14 balasan"],
-    ["Guyss, ada info jadwal", "wisuda ga?", "12 balasan"],
-    ["Rekomen beli hadiah", "buat sempro", "10 balasan"],
-    ["Tips n trik war KRS", "", "8 balasan"],
-]
+// Filter kategori lewat ?category= (hanya berlaku di halaman /forum; di Get Started selalu semua)
+const ForumComp = ({ showHeader = false, limit })=>{
+    const { data: forumPosts = [], isPending, isError, error, refetch } = useForumPosts()
+    const [searchParams] = useSearchParams()
+    const navigate = useNavigate()
+    const [showAllTrending, setShowAllTrending] = useState(false)
 
-const posts = [
-    {
-        profile: profileNoLine,
-        line: profileMidLine,
-        people: true,
-        text: "Do you like pigeons ?",
-        category: "Random",
-        color: "#7CC5D8",
-        replies: "2 balasan",
-    },
-    {
-        profile: profileNoLine,
-        line: profileHighLine,
-        people: true,
-        text: "Info tempat nongkrong di Unand dong",
-        category: "Campus Life",
-        color: "#E7B66C",
-        replies: "14 balasan",
-        image: postImage,
-    },
-    {
-        profile: profileNoLine,
-        text: "Ig Error ya?",
-        category: "Tech",
-        color: "#7DD4B5",
-    },
-]
+    const activeCategory = showHeader ? null : searchParams.get("category")
+    const filtered = activeCategory ? forumPosts.filter((post) => post.category === activeCategory) : forumPosts
+    const visiblePosts = limit ? filtered.slice(0, limit) : filtered
 
-const ForumComp = ()=>{
+    const byReplies = [...forumPosts].sort((a, b) => b.commentCount - a.commentCount)
+    const trending = showAllTrending ? byReplies : byReplies.slice(0, TRENDING_COUNT)
+
     return <section className="px-5 pb-20 sm:px-8 lg:px-[97.32px] lg:pb-30">
-        <Header
+        {showHeader && <SectionHeader
             category="Forum"
             label ="Mari Berdiskusi Dengan Para Rangers"
             ket ="Tempat di mana ide-ide segar bertemu dengan pengetahuan mendalam
                 untuk membantu mengembangkan bisnis kamu"
             to='/forum'
-        />
+        />}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12">
             <aside className="order-2 lg:order-1">
-                <Button className="h-12 w-full rounded-lg text-base">Mulai Diskusi Baru</Button>
+                <Button className="h-12 w-full rounded-lg text-base" onClick={() => navigate("/forum/new")}>Mulai Diskusi Baru</Button>
 
                 <div className="mt-8">
                     <h3 className="mb-4 text-base text-abu">Kategori</h3>
                     <ul className="space-y-4">
-                        {categories.map((category) => (
-                            <li className="flex items-center gap-3 text-base" key={category.label}>
-                                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
-                                {category.label}
-                            </li>
-                        ))}
+                        {forumCategories.map((category) => {
+                            const isActive = category.label === activeCategory
+                            return (
+                                <li key={category.label}>
+                                    <Link
+                                        // klik kategori yang aktif lagi untuk menghapus filter
+                                        to={isActive ? "/forum" : `/forum?category=${encodeURIComponent(category.label)}`}
+                                        aria-current={isActive ? "true" : undefined}
+                                        className={`flex items-center gap-3 text-base hover:text-button ${isActive ? "font-semibold text-button" : ""}`}
+                                    >
+                                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: category.color }} />
+                                        {category.label}
+                                    </Link>
+                                </li>
+                            )
+                        })}
                     </ul>
                 </div>
 
                 <div className="mt-9">
                     <h3 className="mb-4 text-base text-abu">Trending</h3>
                     <ul>
-                        {trendingTopics.map(([title, continuation, replies]) => (
-                            <li className="border-b border-[#E7E7E7] py-3 first:pt-0" key={title}>
-                                <p className="text-base leading-[1.2]">{title}<br />{continuation}</p>
-                                <span className="mt-1 block text-base text-button">{replies}</span>
+                        {trending.map((post) => (
+                            <li className="border-b border-[#E7E7E7] py-3 first:pt-0" key={post.id}>
+                                <Link to={`/forum/${post.id}`} className="block hover:text-button">
+                                    <p className="text-base leading-[1.2]">{post.text}</p>
+                                    <span className="mt-1 block text-base text-button">{post.commentCount} balasan</span>
+                                </Link>
                             </li>
                         ))}
                     </ul>
-                    <button className="mt-3 text-base text-button" type="button">+ Lihat Semua</button>
+                    {byReplies.length > TRENDING_COUNT && (
+                        <button className="mt-3 cursor-pointer text-base text-button" type="button" onClick={() => setShowAllTrending((value) => !value)}>
+                            {showAllTrending ? "− Tampilkan Sedikit" : "+ Lihat Semua"}
+                        </button>
+                    )}
                 </div>
             </aside>
 
             <div className="order-1 space-y-5 lg:order-2">
-                {posts.map((post) => (
-                    <article className="relative min-h-24 rounded-lg bg-white px-4 py-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] sm:px-5" key={post.text}>
-                        <div className="flex gap-3">
-                                    <div className="w-12 shrink-0">
-                                        <img
-                                            className="h-auto w-12 object-contain object-top"
-                                            src={post.line || post.profile}
-                                            alt="Profil pengguna"
-                                        />
-                                        {post.people && <img className="mt-2 h-auto w-12 object-contain" src={profilePeapole} alt="Profil pengguna lain" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                                <p className="text-[20px] font-semibold leading-tight">mrc1na</p>
-                                                <p className="mt-1 text-[20px] leading-tight text-[#222]">{post.text}</p>
-                                    </div>
-                                            <span className="shrink-0 rounded-full border border-[#E8E8E8] px-3 py-1 text-[14px] text-[#777]">
-                                        <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: post.color }} />
-                                        {post.category}
-                                    </span>
-                                </div>
-                                        {post.image && <img className="mt-3 h-auto max-h-55 w-full max-w-[320px] object-cover" src={post.image} alt="Gedung kampus" />}
-                                        <div className="mt-4 flex items-center gap-4 text-[14px] text-[#888]">
-                                            <img className="h-5 w-5" src={messageIcon} alt="Komentar" />
-                                    {post.replies && <span>{post.replies}</span>}
-                                </div>
-                            </div>
-                        </div>
-                    </article>
-                ))}
+                {activeCategory && (
+                    <p className="text-sm text-abu">
+                        Menampilkan kategori <strong className="text-[#222]">{activeCategory}</strong> ·{" "}
+                        <Link to="/forum" className="text-button hover:underline">Hapus filter</Link>
+                    </p>
+                )}
+                {isPending && <Loading />}
+                {isError && <ErrorMessage error={error} onRetry={refetch} />}
+                {!isPending && !isError && visiblePosts.length === 0 && <Empty text="Belum ada diskusi di kategori ini." />}
+                {visiblePosts.map((post) => <ForumPostCard key={post.id} post={post} />)}
+                {limit && filtered.length > limit && (
+                    <Link to="/forum" className="block text-center text-button hover:underline">Lihat semua diskusi</Link>
+                )}
             </div>
         </div>
     </section>

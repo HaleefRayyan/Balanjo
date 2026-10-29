@@ -1,67 +1,50 @@
-import Header from "../../ui/Header"
-import blog from "../../../assets/blog/blog.png"
-import profile from "../../../assets/blog/profile.png"
+import SectionHeader from "../../ui/SectionHeader"
+import { Empty, ErrorMessage, Loading } from "../../ui/Status"
+import { useBlogs } from "../../../api/blogs"
+import { formatLongDate } from "../../../utils/format"
+import defaultCover from "../../../assets/blog/blog.png"
+import authorPhoto from "../../../assets/blog/profile.png"
 import { Link } from "react-router-dom"
 
-const carts =[
-    {
-        id:1,
-        photo : blog,
-        category : "Technology",
-        ket : "The Impact of Technology on the Workplace: How Technology is Changing",
-        profile : profile,
-        name : "Elizabeth Slavin",
-        date : "August 20, 2022",
-    },
-    {
-        id:2,
-        photo : blog,
-        category : "Technology",
-        ket : "The Impact of Technology on the Workplace: How Technology is Changing",
-        profile : profile,
-        name : "Elizabeth Slavin",
-        date : "August 20, 2022",
-    },
-    {
-        id:3,
-        photo : blog,
-        category : "Technology",
-        ket : "The Impact of Technology on the Workplace: How Technology is Changing",
-        profile : profile,
-        name : "Elizabeth Slavin",
-        date : "August 20, 2022",
-    },
-]
-const BlogComp = ()=>{
-    return <section className="">
-        <Header
-            category="Blog"
-            label ="Temukan Inspirasi Karya Rangers"
-            ket ="Tempat di mana ide-ide segar bertemu dengan pengetahuan mendalam
-                    untuk membantu mengembangkan bisnis kamu"
-            to='/blog'
-        />
-        
-        <div className="mx-auto grid w-full max-w-[1720px] grid-cols-1 justify-center gap-6 px-5 sm:grid-cols-2 sm:px-8 lg:flex lg:gap-20 lg:px-0">
-            
-        {carts.map((item)=>{
-            return <Link to="/detail-blog" key={item.id}><div className="h-auto min-h-96 w-full rounded-xl bg-white px-3 py-4 shadow-xl lg:h-140 lg:w-120">
-            <img src={item.photo} alt="" className="mx-auto w-[90%]"/>
-                <div className="mt-4 grid gap-4 px-4 sm:px-6 lg:h-50 lg:w-89">
-                <span className="text-md py-1 pl-2 text-button bg-amber-100 w-24.5 h-7 rounded-md">{item.category}</span>
-                <p className="text-[20px] font-semibold">{item.ket}</p>
+// blogs: daftar dari halaman (sudah difilter; null = masih dimuat).
+// Kalau tidak diberikan sama sekali, ambil `limit` artikel terbaru sendiri (Get Started).
+const BlogComp = ({ blogs, limit, showHeader = false, emptyText = "Belum ada artikel." })=>{
+    const query = useBlogs({ limit }, { enabled: blogs === undefined })
+    const list = blogs === undefined ? query.data : blogs
+
+    let content
+    if (!list && query.isError) content = <ErrorMessage error={query.error} onRetry={query.refetch} className="mx-auto max-w-430" />
+    else if (!list) content = <Loading className="mx-auto max-w-430" />
+    else if (list.length === 0) content = <Empty text={emptyText} className="mx-auto max-w-430" />
+    else content = (
+        <div className="mx-auto grid w-full max-w-430 grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+        {list.map((item)=>{
+            return <Link to={`/blog/${item.slug}`} key={item.id}><div className="h-full min-h-96 w-full rounded-xl bg-white px-3 py-4 shadow-xl">
+            <img src={item.cover ?? defaultCover} alt="" className="mx-auto aspect-[3/2] w-[90%] object-cover"/>
+                <div className="mt-4 grid gap-4 px-4 sm:px-6">
+                <span className="text-md h-7 w-fit rounded-md bg-amber-100 px-2 py-1 leading-5 text-button">{item.category}</span>
+                <p className="text-[20px] font-semibold">{item.title}</p>
                 <div className="flex flex-row gap-3.5 items-center text-abu">
-                    <img src={item.profile} alt="" />
-                    <span>{item.name}</span>
-                    <span>{item.date}</span>
+                    <img src={item.authorAvatar ?? authorPhoto} alt="" className="h-8.5 w-8.5 rounded-full object-cover" />
+                    <span>{item.author}</span>
+                    <span>{formatLongDate(new Date(item.createdAt))}</span>
                 </div>
             </div>
 
         </div></Link>
         })}
-
         </div>
-            
+    )
+
+    return <section className="">
+        {showHeader && <SectionHeader
+            category="Blog"
+            label ="Temukan Inspirasi Karya Rangers"
+            ket ="Tempat di mana ide-ide segar bertemu dengan pengetahuan mendalam
+                    untuk membantu mengembangkan bisnis kamu"
+            to='/blog'
+        />}
+        {content}
     </section>
 }
 

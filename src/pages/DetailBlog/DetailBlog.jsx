@@ -1,42 +1,67 @@
-import image from "../../assets/blog/image.png"
-import Navbar from "../../components/Navbar"
-import Footer from "../../components/sections/Footer"
+import DOMPurify from "dompurify"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import { useBlog, useDeleteBlog } from "../../api/blogs"
+import Avatar from "../../components/ui/Avatar"
+import { useAuth } from "../../context/auth"
+import { ErrorMessage, Loading } from "../../components/ui/Status"
+import { formatDateTime } from "../../utils/format"
+import NotFound from "../NotFound"
 
 const DetailBlog = () => {
-    return <section className="font-roboto text-[#111]">
-        <Navbar />
+    const { slug } = useParams()
+    const { data: blog, isPending, isError, error, refetch } = useBlog(slug)
+    const { user } = useAuth()
+    const navigate = useNavigate()
+    const deleteBlog = useDeleteBlog()
 
-        <header className="bg-background px-6 pb-12 pt-45 sm:px-12 lg:px-[8.5%]">
+    if (isPending) return <div className="mx-auto max-w-327.5 px-6 pt-16"><Loading /></div>
+    if (isError && error.status === 404) return <NotFound />
+    if (isError) return <div className="mx-auto max-w-327.5 px-6 pt-16"><ErrorMessage error={error} onRetry={refetch} /></div>
+
+    const canManage = user && (user.id === blog.authorId || user.role === "admin")
+    const handleDelete = () => {
+        if (window.confirm(`Hapus artikel "${blog.title}"?`)) {
+            deleteBlog.mutate(blog.id, {
+                onSuccess: () => navigate("/blog", { replace: true }),
+                onError: (requestError) => window.alert(requestError.message),
+            })
+        }
+    }
+
+    return <section className="font-roboto text-[#111]">
+
+        <header className="bg-background px-6 pb-12 pt-25 sm:px-12 lg:pt-12 lg:px-[8.5%]">
             <div className="mx-auto max-w-327.5">
-                <span className="inline-block rounded bg-[#f4eddb] px-2 py-1 text-[14px] text-button">Technology</span>
+                <span className="inline-block rounded bg-[#f4eddb] px-2 py-1 text-[14px] text-button">{blog.category}</span>
                 <h1 className="mt-5 text-[40px] font-bold leading-[1.15] text-[#062653]">
-                    The Scalability Solution: Understanding Layer One vs. Layer Two Blockchains
+                    {blog.title}
                 </h1>
                 <div className="mt-4 flex flex-col gap-1 text-[22px] text-[#24518b]">
-                    <span>20 Jan 2024, 8:00pm</span>
-                    <span className="text-[#062653]">by Elizabeth Slavin</span>
+                    <span>{formatDateTime(new Date(blog.createdAt))}</span>
+                    <span className="flex items-center gap-2 text-[#062653]">
+                        {blog.authorAvatar && <Avatar name={blog.author} src={blog.authorAvatar} size="h-8 w-8" />}
+                        by {blog.author}
+                    </span>
                 </div>
+                {canManage && (
+                    <div className="mt-5 flex gap-3 font-inter text-sm">
+                        <Link to={`/blog/${blog.slug}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit artikel</Link>
+                        <button type="button" onClick={handleDelete} disabled={deleteBlog.isPending} className="cursor-pointer rounded-md border border-red-300 px-4 py-2 text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
+                            {deleteBlog.isPending ? "Menghapus..." : "Hapus"}
+                        </button>
+                    </div>
+                )}
             </div>
         </header>
 
         <main className="mx-auto max-w-327.5 px-6 pb-24 pt-9 sm:px-10 lg:px-0">
-            <img className="mx-auto h-auto w-185.75 max-w-full" src={image} alt="Delegasi dalam konferensi internasional" />
-            <article className="mt-12 text-justify text-[20px] font-light leading-none tracking-[0.04em]">
-                <p>Negara-negara Arab, seperti banyak negara di seluruh dunia, terlibat dalam berbagai peristiwa dan konflik yang melibatkan pelanggaran hukum internasional. Pelanggaran ini berkisar dari konflik bersenjata hingga masalah hak asasi manusia dan intervensi kebijakan luar negeri yang kontroversial. Meskipun tidak semua negara Arab terlibat dalam pelanggaran serupa, sejumlah peristiwa telah menimbulkan kekhawatiran di tingkat internasional.</p>
-                <h2 className="mt-7 text-[20px] font-bold leading-none">Intervensi Militer dan Konflik Bersenjata</h2>
-                <p className="mt-1">Salah satu bentuk pelanggaran hukum internasional yang paling mencolok adalah intervensi militer dan konflik bersenjata. Contohnya termasuk perang saudara di Suriah yang telah berlangsung selama bertahun-tahun dengan banyak pelanggaran hak asasi manusia yang dilaporkan, termasuk penggunaan senjata kimia dan serangan terhadap warga sipil. Intervensi militer di Yaman oleh koalisi pimpinan Arab Saudi telah menjadi subjek kritik internasional karena dituduh melanggar hukum humaniter internasional, termasuk serangan udara yang menargetkan infrastruktur sipil dan blokade yang menyebabkan krisis kemanusiaan.</p>
-                <h3 className="mt-1 text-[20px] font-normal leading-none">Hak Asasi Manusia</h3>
-                <p className="mt-1">Pelanggaran hak asasi manusia juga menjadi perhatian penting dalam konteks negara-negara Arab. Banyak negara dalam wilayah tersebut menghadapi kritik atas penindasan terhadap kebebasan berbicara, menahan aktivis politik, penyalahgunaan tahanan, dan perlakuan yang tidak manusiawi terhadap tahanan politik. Misalnya, Arab Saudi sering dikritik karena pelanggaran hak asasi manusia yang sistematis, termasuk eksekusi mati tanpa proses hukum yang adil dan pembatasan yang ketat terhadap kebebasan berbicara dan berkumpul.</p>
-                <h2 className="mt-7 text-[20px] font-bold leading-none">Kebijakan Luar Negeri Kontroversial</h2>
-                <p className="mt-1">Beberapa negara Arab juga terlibat dalam kebijakan luar negeri yang kontroversial yang dianggap melanggar hukum internasional. Contohnya termasuk blokade terhadap Qatar oleh sejumlah negara Arab pada tahun 2017, yang dipandang sebagai pelanggaran terhadap prinsip-prinsip perdamaian dan kebebasan berdagang. Selain itu, intervensi politik di negara lain di wilayah tersebut, seperti upaya untuk mengontrol atau memengaruhi perubahan politik di negara-negara tetangga, juga telah menimbulkan pertanyaan tentang kepatuhan terhadap hukum internasional.</p>
-                <h3 className="mt-1 text-[20px] font-normal leading-none">Implikasi dan Tanggapan</h3>
-                <p className="mt-5">Pelanggaran hukum internasional oleh negara-negara Arab memiliki implikasi yang luas, termasuk kerusakan kredibilitas dan reputasi di tingkat internasional, serta konsekuensi politik dan ekonomi. Organisasi internasional seperti Perserikatan Bangsa-Bangsa (PBB) dan organisasi hak asasi manusia telah memainkan peran penting dalam memantau dan mengkritik pelanggaran semacam itu, sering kali menyerukan akuntabilitas dan tindakan perbaikan.</p>
-                <p className="mt-7">Negara-negara Arab juga menghadapi tekanan dari masyarakat internasional, organisasi non-pemerintah, dan sekutu politik untuk mematuhi standar hukum internasional. Sanksi ekonomi, isolasi diplomatik, dan tekanan politik adalah beberapa alat yang digunakan oleh masyarakat internasional untuk mencoba mempengaruhi perilaku negara-negara yang terlibat dalam pelanggaran.</p>
-                <p className="mt-1">Dalam rangka mencapai perdamaian dan stabilitas di wilayah tersebut, serta untuk memastikan perlindungan hak asasi manusia yang universal, penting bagi negara-negara Arab dan komunitas internasional untuk bekerja sama dalam menegakkan hukum internasional dan memperjuangkan prinsip-prinsip keadilan, keamanan, dan kemanusiaan.</p>
-            </article>
+            {blog.cover && <img className="mx-auto h-auto w-185.75 max-w-full" src={blog.cover} alt="" />}
+            {/* sudah disanitasi server; DOMPurify sebagai lapisan pengaman kedua */}
+            <article
+                className="rich-text mt-12 text-justify text-[20px] font-light leading-snug tracking-[0.04em]"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.body) }}
+            />
         </main>
-
-        <Footer />
     </section>
 }
 
