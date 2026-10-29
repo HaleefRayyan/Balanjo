@@ -19,10 +19,10 @@ const Login = () => {
 
 				<form className="mt-10 flex flex-1 flex-col" onSubmit={(event) => {
 					event.preventDefault()
-		const form = new FormData(event.currentTarget)
-		const user = login({ email: form.get("email") })
-		const home = user.role === "admin" ? "/admin" : "/"
-		navigate(location.state?.from?.pathname || home, { replace: true })
+					const form = new FormData(event.currentTarget)
+					const user = login({ email: form.get("email") })
+					const home = user.role === "admin" ? "/admin" : "/"
+					navigate(location.state?.from?.pathname || home, { replace: true })
 				}}>
 					<label className="text-[16px] text-[#222]" htmlFor="email">Email</label>
 					<input
@@ -34,8 +34,9 @@ const Login = () => {
 						className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
 					/>
 
-					<div className="mt-10">
+					<div className="mt-10 flex items-center justify-between gap-4">
 						<label className="text-[16px] text-[#222]" htmlFor="password">Password</label>
+						<a className="text-[16px] text-[#42a5e9] hover:underline" href="#forgot-password">I forgot my password</a>
 					</div>
 					<input
 						id="password"
@@ -45,9 +46,6 @@ const Login = () => {
 						placeholder="your password"
 						className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
 					/>
-					<div className="mt-3 flex justify-end">
-						<a className="text-[16px] text-[#42a5e9] hover:underline" href="#forgot-password">I forgot my password</a>
-					</div>
 
 					<button className="mx-auto mt-10 h-18 w-37.25 rounded-[10px] bg-black text-[18px] font-semibold text-white transition-opacity hover:opacity-80" type="submit">
 						Sign in
