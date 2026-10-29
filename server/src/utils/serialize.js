@@ -50,6 +50,7 @@ export const serializeProduct = (product) => ({
     photo: product.photoUrl,
     variants: JSON.parse(product.variants),
     seller: product.seller?.name ?? null,
+    sellerId: product.sellerId,
 })
 
 export const serializeBanner = (banner) => ({
@@ -67,16 +68,21 @@ export const serializeBannerRequest = (request) => ({
     createdAt: request.createdAt,
 })
 
+export const serializeOrderItem = (item) => ({
+    id: item.id,
+    productId: item.productId,
+    name: item.name,
+    price: item.price,
+    variant: item.variant,
+    quantity: item.quantity,
+    status: item.status,
+    photo: item.product?.photoUrl ?? null, // null kalau produknya sudah dihapus
+    seller: item.seller?.name ?? null,
+})
+
 export const serializeOrder = (order) => ({
     id: order.id,
     total: order.total,
-    status: order.status,
     createdAt: order.createdAt,
-    items: order.items?.map((item) => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        variant: item.variant,
-        quantity: item.quantity,
-    })),
+    items: order.items?.map(serializeOrderItem),
 })

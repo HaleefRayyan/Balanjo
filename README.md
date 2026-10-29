@@ -45,7 +45,15 @@ You can also run them separately with `npm run dev` (website) and `npm run dev:s
 
 Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, anto@, mrc1na@, elizabeth@ `gmail.com`). Logging in as an admin opens the admin panel at `/admin`.
 
+## Selling and orders
+
+- Any logged-in user can sell. Open **Toko Saya** (`/seller`) from the user menu to add products, handle incoming orders (status: Menunggu konfirmasi → Diproses → Dikirim → Selesai, or Dibatalkan), and request promo banners. Banners approved by an admin appear in the Get Started slider.
+- **Pesanan Saya** (`/orders`) lists your orders. You can cancel an order until a seller starts processing it.
+- Each order item has its own status, because one order can contain products from several sellers.
+
 ## Database
+
+> **After pulling new changes**, run `npm run setup` again (or `npx prisma migrate deploy` in `server/`) to apply new migrations. It keeps your existing data.
 
 | Command (run in `server/`) | What it does |
 |---|---|

@@ -2,10 +2,13 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import Button from "../../ui/Button"
 import { useCart } from "../../../context/cart"
+import { useAuth } from "../../../context/auth"
 import { formatRupiah } from "../../../utils/format"
 
 const ProductCard = ({ product }) => {
     const { addItem } = useCart()
+    const { user } = useAuth()
+    const isOwnProduct = user && product.sellerId === user.id
     const [added, setAdded] = useState(false)
     const link = `/e-commerce/product/${product.id}`
 
@@ -32,9 +35,15 @@ const ProductCard = ({ product }) => {
                     <Link to={link} className="hover:text-button">{product.name}</Link>
                 </h3>
                 <span className="mt-2 text-base font-semibold sm:mt-4 sm:text-[20px]">{formatRupiah(product.price)}</span>
-                <Button onClick={handleAdd} aria-live="polite" className="mt-2 h-9 w-full max-w-37.5 rounded-md text-[11px] sm:mt-4 sm:h-11 sm:text-[14px]">
-                    {added ? "✓ Ditambahkan" : "+ Keranjang"}
-                </Button>
+                {isOwnProduct ? (
+                    <Link to="/seller" className="mt-2 flex h-9 w-full max-w-37.5 items-center justify-center rounded-md border border-button text-[11px] text-button sm:mt-4 sm:h-11 sm:text-[14px]">
+                        Produk tokomu
+                    </Link>
+                ) : (
+                    <Button onClick={handleAdd} aria-live="polite" className="mt-2 h-9 w-full max-w-37.5 rounded-md text-[11px] sm:mt-4 sm:h-11 sm:text-[14px]">
+                        {added ? "✓ Ditambahkan" : "+ Keranjang"}
+                    </Button>
+                )}
             </div>
         </article>
     )

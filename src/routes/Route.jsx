@@ -14,6 +14,9 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import NotFound from "../pages/NotFound";
 import Cart from "../pages/Cart";
+import Orders from "../pages/Orders";
+import Seller from "../pages/Seller";
+import SellerProductForm from "../pages/SellerProductForm";
 import ForumDetail from "../pages/ForumDetail";
 import NewDiscussion from "../pages/NewDiscussion";
 import ForgotPassword from "../pages/ForgotPassword";
@@ -64,6 +67,15 @@ const routes = [
                 ],
             },
             { path: "cart", element: <Cart /> },
+            {
+                element: <ProtectedRoute />,
+                children: [
+                    { path: "orders", element: <Orders /> },
+                    { path: "seller", element: <Seller /> },
+                    { path: "seller/products/new", element: <SellerProductForm /> },
+                    { path: "seller/products/:id/edit", element: <SellerProductForm /> },
+                ],
+            },
             { path: "*", element: <NotFound /> },
         ],
     },

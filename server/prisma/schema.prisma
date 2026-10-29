@@ -24,6 +24,7 @@ model User {
   comments       Comment[]
   products       Product[]
   orders         Order[]
+  sales          OrderItem[] // item pesanan untuk produk yang dia jual
   bannerRequests BannerRequest[]
   resetTokens    PasswordResetToken[]
 }
@@ -89,8 +90,7 @@ model Order {
   userId    Int
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   total     Int
-  status    String      @default("PENDING") // PENDING | PAID | SHIPPED | DONE | CANCELLED
-  items     OrderItem[]
+  items     OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
   createdAt DateTime    @default(now())
 }
 
@@ -100,10 +100,15 @@ model OrderItem {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId Int?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sellerId  Int? // salinan seller saat dibeli: penjualan tetap terlihat walau produknya dihapus
+  seller    User?    @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   name      String // salinan nama & harga saat dibeli, supaya riwayat tidak berubah
   price     Int
   variant   String?
   quantity  Int
+  status    String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
+
+  @@index([sellerId])
 }
 
 model Banner {

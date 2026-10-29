@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { api, toQuery } from "./client"
 
 // params: { q, category, page, pageSize, ids, excludeId } -> { products, total, page, pageSize }
@@ -15,7 +15,3 @@ export const useProduct = (id) =>
         queryKey: ["product", String(id)],
         queryFn: () => api(`/products/${id}`).then((data) => data.product),
     })
-
-// items: [{ productId, variant, quantity }]
-export const useCreateOrder = () =>
-    useMutation({ mutationFn: (items) => api("/orders", { method: "POST", body: { items } }).then((data) => data.order) })

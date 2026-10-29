@@ -7,12 +7,15 @@ import QuantityInput from "../../components/ui/QuantityInput"
 import { useProduct, useProducts } from "../../api/products"
 import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { useCart } from "../../context/cart"
+import { useAuth } from "../../context/auth"
 import { formatRupiah } from "../../utils/format"
 import NotFound from "../NotFound"
 
 // Dipisah dan diberi key={product.id} supaya variasi & jumlah kembali ke awal saat pindah produk
 const ProductDetail = ({ product }) => {
     const { addItem } = useCart()
+    const { user } = useAuth()
+    const isOwnProduct = user && product.sellerId === user.id
     const [quantity, setQuantity] = useState(1)
     const [variant, setVariant] = useState("")
     const [message, setMessage] = useState(null)
@@ -38,7 +41,8 @@ const ProductDetail = ({ product }) => {
 
                 <div className="flex flex-col justify-center py-2 lg:py-6">
                     <h1 className="text-3xl font-semibold leading-tight text-[#2d2d2d] sm:text-4xl">{product.name}</h1>
-                    <p className="mt-3 max-w-xl text-xs leading-relaxed text-abu">{product.description}</p>
+                    {product.seller && <p className="mt-1 text-sm text-abu">Dijual oleh <span className="font-medium text-[#555]">{product.seller}</span></p>}
+                    <p className="mt-3 max-w-xl whitespace-pre-line text-xs leading-relaxed text-abu">{product.description}</p>
 
                     <div className="mt-4 flex items-center gap-3">
                         <span className="text-xl font-medium">{formatRupiah(product.price)}</span>
@@ -59,9 +63,16 @@ const ProductDetail = ({ product }) => {
                         </div>
                     )}
 
-                    <QuantityInput className="mt-7 h-11" value={quantity} onChange={setQuantity} />
-
-                    <Button className="mt-3 h-11 w-full rounded-md text-sm" onClick={handleAdd}>Tambah ke Keranjang</Button>
+                    {isOwnProduct ? (
+                        <p className="mt-7 rounded-md bg-text px-4 py-3 text-sm text-[#555]">
+                            Ini produk tokomu. <Link to={`/seller/products/${product.id}/edit`} className="font-medium text-button underline">Edit produk</Link>
+                        </p>
+                    ) : (
+                        <>
+                            <QuantityInput className="mt-7 h-11" value={quantity} onChange={setQuantity} />
+                            <Button className="mt-3 h-11 w-full rounded-md text-sm" onClick={handleAdd}>Tambah ke Keranjang</Button>
+                        </>
+                    )}
 
                     {message && (
                         <p role="status" className={`mt-3 text-sm ${message.type === "error" ? "text-red-600" : "text-green-700"}`}>
