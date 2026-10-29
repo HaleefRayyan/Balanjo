@@ -3,9 +3,9 @@ import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import Modal from "../../../components/admin/Modal"
 import PageTitle from "../../../components/admin/PageTitle"
-import { EditIcon, TrashIcon } from "../../../components/admin/icons"
+import { EditIcon, TrashIcon } from "../../../components/ui/icons"
 import Button from "../../../components/ui/Button"
-import { banners as initialBanners } from "../../../data/banners"
+import { useContent } from "../../../context/content"
 
 // editing: null = modal tertutup, {} = tambah baru, banner = edit banner itu
 const BannerForm = ({ banner, takenIds, onSave, onCancel }) => {
@@ -63,22 +63,17 @@ const BannerForm = ({ banner, takenIds, onSave, onCancel }) => {
 }
 
 const Banners = () => {
-    const [banners, setBanners] = useState(initialBanners)
+    const { banners, saveBanner, removeBanner } = useContent()
     const [editing, setEditing] = useState(null)
 
     const handleSave = (saved) => {
-        setBanners((current) => {
-            const exists = current.some((item) => item.id === saved.id)
-            return exists
-                ? current.map((item) => (item.id === saved.id ? saved : item))
-                : [...current, saved]
-        })
+        saveBanner(saved)
         setEditing(null)
     }
 
     const handleDelete = (banner) => {
         if (window.confirm(`Hapus ${banner.id}?`)) {
-            setBanners((current) => current.filter((item) => item.id !== banner.id))
+            removeBanner(banner.id)
         }
     }
 

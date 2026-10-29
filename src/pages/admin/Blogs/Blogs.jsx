@@ -1,17 +1,16 @@
-import { useState } from "react"
 import { Link } from "react-router-dom"
 import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import PageTitle from "../../../components/admin/PageTitle"
-import { EyeIcon, TrashIcon } from "../../../components/admin/icons"
-import initialBlogs from "../../../data/blogs"
+import { EyeIcon, TrashIcon } from "../../../components/ui/icons"
+import { useContent } from "../../../context/content"
 
 const Blogs = () => {
-    const [blogs, setBlogs] = useState(initialBlogs)
+    const { blogs, removeBlog } = useContent()
 
     const handleDelete = (blog) => {
         if (window.confirm(`Hapus blog "${blog.title}"?`)) {
-            setBlogs((current) => current.filter((item) => item.id !== blog.id))
+            removeBlog(blog.id)
         }
     }
 

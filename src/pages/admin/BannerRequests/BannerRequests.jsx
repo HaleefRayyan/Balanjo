@@ -4,7 +4,7 @@ import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import Modal from "../../../components/admin/Modal"
 import PageTitle from "../../../components/admin/PageTitle"
-import { EyeIcon } from "../../../components/admin/icons"
+import { EyeIcon } from "../../../components/ui/icons"
 import { bannerRequests, bannerStatuses } from "../../../data/banners"
 
 const BannerRequests = () => {

@@ -1,24 +1,34 @@
 import { useState } from "react"
+import { Link, useParams } from "react-router-dom"
 import ECommerceComp from "../../components/sections/ECommerceComp"
+import { ProductSearch } from "../../components/sections/ProductList"
 import Button from "../../components/ui/Button"
-import Search from "../../components/ui/Search"
-import { useParams } from "react-router-dom"
-import { findProduct } from "../../data/products"
+import QuantityInput from "../../components/ui/QuantityInput"
+import products, { findProduct } from "../../data/products"
+import { useCart } from "../../context/cart"
+import { formatRupiah } from "../../utils/format"
 import NotFound from "../NotFound"
 
-const DetailProduct = () => {
-    const { id } = useParams()
-    const product = findProduct(id)
+// Dipisah dan diberi key={product.id} supaya variasi & jumlah kembali ke awal saat pindah produk
+const ProductDetail = ({ product }) => {
+    const { addItem } = useCart()
     const [quantity, setQuantity] = useState(1)
+    const [variant, setVariant] = useState("")
+    const [message, setMessage] = useState(null)
+    const recommendations = products.filter((item) => item.id !== product.id).slice(0, 4)
 
-    if (!product) return <NotFound />
+    const handleAdd = () => {
+        if (product.variants && !variant) {
+            setMessage({ type: "error", text: "Pilih variasi dulu ya." })
+            return
+        }
+        addItem(product.id, variant || undefined, quantity)
+        setMessage({ type: "success", text: `${quantity} × ${product.name} ditambahkan ke keranjang.` })
+    }
 
-    return <>
+    return (
         <main className="mx-auto w-full max-w-[1720px] px-5 pb-20 pt-29 lg:pt-16 sm:px-8 lg:px-[6.5vw]">
-            <Search
-                className="h-10 w-full rounded-md px-4 text-[20px] shadow-[0_2px_10px_rgba(0,0,0,0.08)] placeholder:text-[#aaa]"
-                placeholder="Search for products..."
-            />
+            <ProductSearch action="/e-commerce" />
 
             <section className="mt-10 grid gap-6 rounded-lg bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] sm:p-6 lg:grid-cols-[1.2fr_0.85fr] lg:gap-8">
                 <div className="overflow-hidden rounded-md bg-[#f3eef0]">
@@ -30,26 +40,34 @@ const DetailProduct = () => {
                     <p className="mt-3 max-w-xl text-xs leading-relaxed text-abu">{product.description}</p>
 
                     <div className="mt-4 flex items-center gap-3">
-                        <span className="text-xl font-medium">{product.price}</span>
+                        <span className="text-xl font-medium">{formatRupiah(product.price)}</span>
                     </div>
 
-                    <div className="mt-6 border-t border-[#eeeeee] pt-5">
-                        <label className="text-xs text-[#666]" htmlFor="size">Variasi</label>
-                        <select id="size" className="mt-2 h-10 w-full rounded-md border border-[#d7d7d7] bg-white px-3 text-xs text-abu outline-none">
-                            <option>Select Size</option>
-                            <option>Small</option>
-                            <option>Medium</option>
-                            <option>Large</option>
-                        </select>
-                    </div>
+                    {product.variants && (
+                        <div className="mt-6 border-t border-[#eeeeee] pt-5">
+                            <label className="text-xs text-[#666]" htmlFor="variant">Variasi</label>
+                            <select
+                                id="variant"
+                                value={variant}
+                                onChange={(event) => { setVariant(event.target.value); setMessage(null) }}
+                                className="mt-2 h-10 w-full rounded-md border border-[#d7d7d7] bg-white px-3 text-xs text-[#333] outline-none focus:border-button"
+                            >
+                                <option value="" disabled>Pilih variasi</option>
+                                {product.variants.map((option) => <option key={option}>{option}</option>)}
+                            </select>
+                        </div>
+                    )}
 
-                    <div className="mt-7 flex h-11 items-center justify-between rounded-md bg-text px-4 text-sm text-abu">
-                        <button type="button" aria-label="Kurangi jumlah" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>−</button>
-                        <span className="font-medium text-[#555]">{quantity}</span>
-                        <button type="button" aria-label="Tambah jumlah" onClick={() => setQuantity((value) => value + 1)}>+</button>
-                    </div>
+                    <QuantityInput className="mt-7 h-11" value={quantity} onChange={setQuantity} />
 
-                    <Button className="mt-3 h-11 w-full rounded-md text-sm">Tambah ke Keranjang</Button>
+                    <Button className="mt-3 h-11 w-full rounded-md text-sm" onClick={handleAdd}>Tambah ke Keranjang</Button>
+
+                    {message && (
+                        <p role="status" className={`mt-3 text-sm ${message.type === "error" ? "text-red-600" : "text-green-700"}`}>
+                            {message.text}
+                            {message.type === "success" && <> <Link to="/cart" className="font-medium text-button underline">Lihat keranjang</Link></>}
+                        </p>
+                    )}
                 </div>
             </section>
 
@@ -58,10 +76,19 @@ const DetailProduct = () => {
                     <span className="h-0.75 w-16 bg-button" />
                     <h2 className="text-xl font-semibold sm:text-2xl">Rekomendasi lainnya</h2>
                 </div>
-                <ECommerceComp limit={4} />
+                <ECommerceComp products={recommendations} />
             </section>
         </main>
-    </>
+    )
+}
+
+const DetailProduct = () => {
+    const { id } = useParams()
+    const product = findProduct(id)
+
+    if (!product) return <NotFound />
+
+    return <ProductDetail key={product.id} product={product} />
 }
 
 export default DetailProduct

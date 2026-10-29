@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { ChevronDownIcon, MenuIcon } from "./icons"
+import { ChevronDownIcon, MenuIcon } from "../ui/icons"
 
 const Topbar = ({ onMenuClick }) => {
     const location = useLocation()

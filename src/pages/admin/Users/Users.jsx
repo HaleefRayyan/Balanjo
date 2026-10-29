@@ -2,7 +2,7 @@ import { useState } from "react"
 import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import PageTitle from "../../../components/admin/PageTitle"
-import { TrashIcon } from "../../../components/admin/icons"
+import { TrashIcon } from "../../../components/ui/icons"
 import initialUsers from "../../../data/users"
 
 const Users = () => {

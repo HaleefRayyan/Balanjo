@@ -25,15 +25,17 @@ const templates = [
         photo: kacamata,
         category: "Fashion",
         name: "Kacamata Korea Hitam",
-        price: "Rp59.000",
+        price: 59000,
+        variants: ["Hitam", "Coklat", "Transparan"],
         description: "Kacamata ini dapat melindungi mata kita dari berbagai jenis radiasi. Mulai dari radiasi sinar ultraviolet sampai radiasi nuklir. Selain itu, kacamata ini juga memiliki bentuk yang keren dan kece.",
     },
     {
         photo: lilin,
-        category: "Fashion",
+        category: "Creative",
         name: "Lilin Aromaterapi Varian Anggur",
-        price: "Rp59.000",
-        description: "Lilin aromaterapi dengan wangi anggur yang menenangkan, cocok untuk menemani belajar dan beristirahat.",
+        price: 45000,
+        variants: ["Anggur", "Lavender", "Vanila"],
+        description: "Lilin aromaterapi dengan wangi yang menenangkan, cocok untuk menemani belajar dan beristirahat.",
     },
 ]
 
@@ -43,5 +45,10 @@ const products = Array.from({ length: 12 }, (_, index) => ({
 }))
 
 export const findProduct = (id) => products.find((product) => product.id === Number(id))
+
+export const searchProducts = (list, query) => {
+    const q = query.trim().toLowerCase()
+    return q ? list.filter((product) => product.name.toLowerCase().includes(q)) : list
+}
 
 export default products

@@ -1,24 +1,8 @@
 import { useState } from "react"
 import { AuthContext } from "./auth"
+import { readJSON, writeJSON } from "../utils/storage"
 
 const STORAGE_KEY = "balanjo:user"
-
-const readUser = () => {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY))
-    } catch {
-        return null
-    }
-}
-
-const saveUser = (user) => {
-    try {
-        if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-        else localStorage.removeItem(STORAGE_KEY)
-    } catch {
-        // storage bisa diblokir (mode private), login tetap jalan selama tab terbuka
-    }
-}
 
 const nameFromEmail = (email) => {
     const name = email.split("@")[0]
@@ -28,7 +12,7 @@ const nameFromEmail = (email) => {
 // Auth palsu sampai backend tersedia: semua login diterima,
 // email yang diawali "admin" dapat role admin.
 const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(readUser)
+    const [user, setUser] = useState(() => readJSON(STORAGE_KEY, null))
 
     const login = ({ email, name }) => {
         const nextUser = {
@@ -37,13 +21,13 @@ const AuthProvider = ({ children }) => {
             role: email.toLowerCase().startsWith("admin") ? "admin" : "user",
         }
         setUser(nextUser)
-        saveUser(nextUser)
+        writeJSON(STORAGE_KEY, nextUser)
         return nextUser
     }
 
     const logout = () => {
         setUser(null)
-        saveUser(null)
+        writeJSON(STORAGE_KEY, null)
     }
 
     return (

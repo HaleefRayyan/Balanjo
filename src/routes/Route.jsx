@@ -1,4 +1,5 @@
 import MainLayout from "../layouts/MainLayout";
+import AuthLayout from "../layouts/AuthLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import Blog from "../pages/Blog";
 import DetailBlog from "../pages/DetailBlog";
@@ -12,6 +13,10 @@ import UploadArtikel from "../pages/UploadArtikel";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import NotFound from "../pages/NotFound";
+import Cart from "../pages/Cart";
+import ForumDetail from "../pages/ForumDetail";
+import NewDiscussion from "../pages/NewDiscussion";
+import ForgotPassword from "../pages/ForgotPassword";
 import AdminLayout from "../layouts/AdminLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import Users from "../pages/admin/Users";
@@ -27,7 +32,17 @@ const routes = [
         children: [
             { index: true, element: <Home />, handle: { navOverlay: true } },
             { path: "get-started", element: <GetStarted /> },
-            { path: "forum", element: <Forum /> },
+            {
+                path: "forum",
+                children: [
+                    { index: true, element: <Forum /> },
+                    {
+                        element: <ProtectedRoute />,
+                        children: [{ path: "new", element: <NewDiscussion /> }],
+                    },
+                    { path: ":id", element: <ForumDetail /> },
+                ],
+            },
             {
                 path: "blog",
                 children: [
@@ -47,6 +62,7 @@ const routes = [
                     { path: "product/:id", element: <DetailProduct /> },
                 ],
             },
+            { path: "cart", element: <Cart /> },
             { path: "*", element: <NotFound /> },
         ],
     },
@@ -68,8 +84,14 @@ const routes = [
             },
         ],
     },
-    { path: "/login", element: <Login /> },
-    { path: "/register", element: <Register /> },
+    {
+        element: <AuthLayout />,
+        children: [
+            { path: "/login", element: <Login /> },
+            { path: "/register", element: <Register /> },
+            { path: "/forgot-password", element: <ForgotPassword /> },
+        ],
+    },
 ]
 
 export default routes

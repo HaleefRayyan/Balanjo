@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom"
 import logoCoklat from "../../assets/navbar/logoCoklat.svg"
-import { DashboardIcon, FolderGearIcon, UserIcon } from "./icons"
+import { DashboardIcon, FolderGearIcon, UserIcon } from "../ui/icons"
 
 const menu = [
     { label: "Dashboard", to: "/admin", icon: DashboardIcon, end: true },

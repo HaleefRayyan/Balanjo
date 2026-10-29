@@ -1,17 +1,16 @@
-import { useState } from "react"
 import { Link } from "react-router-dom"
 import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import PageTitle from "../../../components/admin/PageTitle"
-import { EyeIcon, TrashIcon } from "../../../components/admin/icons"
-import { forumPosts } from "../../../data/forum"
+import { EyeIcon, TrashIcon } from "../../../components/ui/icons"
+import { useContent } from "../../../context/content"
 
 const Forums = () => {
-    const [posts, setPosts] = useState(forumPosts)
+    const { forumPosts: posts, removeForumPost } = useContent()
 
     const handleDelete = (post) => {
         if (window.confirm(`Hapus forum "${post.text}"?`)) {
-            setPosts((current) => current.filter((item) => item.id !== post.id))
+            removeForumPost(post.id)
         }
     }
 
@@ -20,7 +19,7 @@ const Forums = () => {
         { key: "text", header: "Judul Forum", className: "max-w-80" },
         { key: "category", header: "Kategori", className: "font-medium" },
         { key: "author", header: "Uploader", className: "text-abu" },
-        { key: "replyCount", header: "Balasan", className: "text-abu" },
+        { key: "replies", header: "Balasan", className: "text-abu", render: (post) => post.comments.length },
         { key: "date", header: "Tanggal Upload", className: "text-abu" },
         {
             key: "actions",
@@ -28,7 +27,7 @@ const Forums = () => {
             className: "whitespace-nowrap",
             render: (post) => (
                 <div className="flex items-center gap-3">
-                    <Link to="/forum" target="_blank" aria-label="Lihat forum" title="Lihat forum" className="rounded-md p-1 text-button hover:bg-button/10">
+                    <Link to={`/forum/${post.id}`} target="_blank" aria-label="Lihat forum" title="Lihat forum" className="rounded-md p-1 text-button hover:bg-button/10">
                         <EyeIcon />
                     </Link>
                     <IconButton label="Hapus forum" onClick={() => handleDelete(post)}>

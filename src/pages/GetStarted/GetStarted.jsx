@@ -9,7 +9,7 @@ const GetStarted = ()=>{
     <Slider />
     <ECommerceComp showHeader />
     <BlogComp showHeader limit={3} />
-    <ForumComp showHeader />
+    <ForumComp showHeader limit={3} />
     </div>
     )
 }
