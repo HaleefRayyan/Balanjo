@@ -154,6 +154,12 @@ The website and the API deploy together as one Vercel project, on one address, s
    ```
    Then close that terminal, so the production addresses don't stay set.
 
+**Images uploaded before Blob was connected** (for example sample data seeded locally) still point at `server/uploads` on your computer and won't load on Vercel. Copy the Blob store's `BLOB_READ_WRITE_TOKEN` into `server/.env`, then move them:
+```bash
+npm --prefix server run move-uploads-to-blob -- --dry-run   # preview, changes nothing
+npm --prefix server run move-uploads-to-blob                # upload to Blob and update the database
+```
+
 After that, every push to the production branch redeploys automatically.
 
 ## Other scripts
