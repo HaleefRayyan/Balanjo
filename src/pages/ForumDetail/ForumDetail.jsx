@@ -2,27 +2,30 @@ import { useState } from "react"
 import { Link, useLocation, useParams } from "react-router-dom"
 import ForumPostCard from "../../components/sections/ForumComp/ForumPostCard"
 import Button from "../../components/ui/Button"
+import { ErrorMessage, Loading } from "../../components/ui/Status"
 import profileNoLine from "../../assets/forum/profileNoLine.png"
+import { useAddComment, useForumPost } from "../../api/forum"
 import { useAuth } from "../../context/auth"
-import { useContent } from "../../context/content"
+import { formatShortDate } from "../../utils/format"
 import NotFound from "../NotFound"
 
 const ForumDetail = () => {
     const { id } = useParams()
     const location = useLocation()
     const { user } = useAuth()
-    const { forumPosts, addComment } = useContent()
+    const { data: post, isPending, isError, error, refetch } = useForumPost(id)
+    const addComment = useAddComment(id)
     const [reply, setReply] = useState("")
-    const post = forumPosts.find((item) => item.id === Number(id))
 
-    if (!post) return <NotFound />
+    if (isPending) return <main className="mx-auto max-w-5xl px-5 pt-16 sm:px-8"><Loading /></main>
+    if (isError && (error.status === 404 || error.status === 400)) return <NotFound />
+    if (isError) return <main className="mx-auto max-w-5xl px-5 pt-16 sm:px-8"><ErrorMessage error={error} onRetry={refetch} /></main>
 
     const handleSubmit = (event) => {
         event.preventDefault()
         const text = reply.trim()
         if (!text) return
-        addComment(post.id, { author: user.name, text })
-        setReply("")
+        addComment.mutate(text, { onSuccess: () => setReply("") })
     }
 
     return (
@@ -43,9 +46,9 @@ const ForumDetail = () => {
                             <div className="min-w-0">
                                 <p className="text-[15px]">
                                     <span className="font-semibold">{comment.author}</span>
-                                    <span className="ml-2 text-[13px] text-abu">{comment.date}</span>
+                                    <span className="ml-2 text-[13px] text-abu">{formatShortDate(new Date(comment.createdAt))}</span>
                                 </p>
-                                <p className="mt-1 text-[16px] text-[#222]">{comment.text}</p>
+                                <p className="mt-1 whitespace-pre-line text-[16px] text-[#222]">{comment.text}</p>
                             </div>
                         </li>
                     ))}
@@ -57,12 +60,16 @@ const ForumDetail = () => {
                         <textarea
                             id="reply"
                             value={reply}
+                            maxLength={1000}
                             onChange={(event) => setReply(event.target.value)}
                             rows={3}
                             className="mt-2 w-full resize-y rounded-lg border border-[#adadad] bg-white p-3 text-[16px] outline-none focus:border-button"
                         />
+                        {addComment.isError && <p role="alert" className="mt-2 text-sm text-red-600">{addComment.error.message}</p>}
                         <div className="mt-3 flex justify-end">
-                            <Button type="submit" disabled={!reply.trim()} className="rounded-md px-6 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">Kirim</Button>
+                            <Button type="submit" disabled={!reply.trim() || addComment.isPending} className="rounded-md px-6 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">
+                                {addComment.isPending ? "Mengirim..." : "Kirim"}
+                            </Button>
                         </div>
                     </form>
                 ) : (

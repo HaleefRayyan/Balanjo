@@ -1,37 +1,39 @@
-import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AuthContext } from "./auth"
-import { readJSON, writeJSON } from "../utils/storage"
+import { fetchMe, loginRequest, logoutRequest, registerRequest } from "../api/auth"
 
-const STORAGE_KEY = "balanjo:user"
-
-const nameFromEmail = (email) => {
-    const name = email.split("@")[0]
-    return name.charAt(0).toUpperCase() + name.slice(1)
-}
-
-// Auth palsu sampai backend tersedia: semua login diterima,
-// email yang diawali "admin" dapat role admin.
+// Sesi login disimpan server di cookie httpOnly; di sini hanya membaca /api/auth/me.
 const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => readJSON(STORAGE_KEY, null))
+    const queryClient = useQueryClient()
+    const { data: user, isPending } = useQuery({
+        queryKey: ["me"],
+        queryFn: fetchMe,
+        staleTime: Infinity,
+        retry: false,
+    })
 
-    const login = ({ email, name }) => {
-        const nextUser = {
-            name: name || nameFromEmail(email),
-            email,
-            role: email.toLowerCase().startsWith("admin") ? "admin" : "user",
-        }
+    const setUser = (nextUser) => queryClient.setQueryData(["me"], nextUser)
+
+    const login = async (credentials) => {
+        const nextUser = await loginRequest(credentials)
         setUser(nextUser)
-        writeJSON(STORAGE_KEY, nextUser)
         return nextUser
     }
 
-    const logout = () => {
+    const register = async (data) => {
+        const nextUser = await registerRequest(data)
+        setUser(nextUser)
+        return nextUser
+    }
+
+    const logout = async () => {
+        await logoutRequest()
         setUser(null)
-        writeJSON(STORAGE_KEY, null)
+        queryClient.removeQueries({ queryKey: ["admin"] })
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user: user ?? null, loading: isPending, login, register, logout }}>
             {children}
         </AuthContext.Provider>
     )

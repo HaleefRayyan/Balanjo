@@ -3,13 +3,13 @@ import bannerDua from '../../../assets/started/bannerDua.png'
 import bannerTiga from '../../../assets/started/bannerTiga.png'
 import kanan from '../../../assets/started/kanan.svg'
 import kiri from '../../../assets/started/kiri.svg'
-import { useContent } from '../../../context/content'
+import { useBanners } from '../../../api/banners'
 
 const INTERVAL = 5000
 
 // Slide diambil dari banner yang dikelola admin (Kelola E-Commerce)
 const Slider = ()=>{
-    const { banners: slides } = useContent()
+    const { data: slides = [] } = useBanners()
     const [index, setIndex] = useState(0)
     // jaga-jaga kalau admin menghapus banner sehingga index lama melewati jumlah slide
     const currentIndex = slides.length ? index % slides.length : 0
@@ -29,7 +29,7 @@ const Slider = ()=>{
         <div className="relative mx-auto mt-8 h-56 w-full max-w-430 overflow-hidden rounded-2xl sm:mt-20 sm:h-80 lg:mt-22.75 lg:h-150">
             <img
                 src={slides[currentIndex].image}
-                alt={slides[currentIndex].id}
+                alt={slides[currentIndex].label}
                 className="w-full h-full object-cover transition-all duration-500"
             />
 
@@ -59,7 +59,7 @@ const Slider = ()=>{
                     <button
                         type="button"
                         key={slide.id}
-                        aria-label={`Ke ${slide.id}`}
+                        aria-label={`Ke ${slide.label}`}
                         aria-current={slideIndex === currentIndex ? "true" : undefined}
                         onClick={() => setIndex(slideIndex)}
                         className={`w-3 h-3 cursor-pointer rounded-full ${

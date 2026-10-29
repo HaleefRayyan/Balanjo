@@ -17,6 +17,7 @@ import Cart from "../pages/Cart";
 import ForumDetail from "../pages/ForumDetail";
 import NewDiscussion from "../pages/NewDiscussion";
 import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 import AdminLayout from "../layouts/AdminLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import Users from "../pages/admin/Users";
@@ -90,6 +91,7 @@ const routes = [
             { path: "/login", element: <Login /> },
             { path: "/register", element: <Register /> },
             { path: "/forgot-password", element: <ForgotPassword /> },
+            { path: "/reset-password", element: <ResetPassword /> },
         ],
     },
 ]

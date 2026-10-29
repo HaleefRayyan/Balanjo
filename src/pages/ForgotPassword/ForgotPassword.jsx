@@ -1,13 +1,16 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
+import { useForgotPassword } from "../../api/auth"
 
 const ForgotPassword = () => {
     const [sentTo, setSentTo] = useState("")
+    const forgotPassword = useForgotPassword()
 
-    // Belum ada backend: hanya menampilkan konfirmasi
+    // Server selalu menjawab sukses (tidak membocorkan email mana yang terdaftar)
     const handleSubmit = (event) => {
         event.preventDefault()
-        setSentTo(new FormData(event.currentTarget).get("email"))
+        const email = new FormData(event.currentTarget).get("email")
+        forgotPassword.mutate(email, { onSuccess: () => setSentTo(email) })
     }
 
     return (
@@ -31,8 +34,9 @@ const ForgotPassword = () => {
                         placeholder="your email address"
                         className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
                     />
-                    <button className="mx-auto mt-10 h-18 rounded-[10px] bg-black px-6 text-[18px] font-semibold text-white transition-opacity hover:opacity-80" type="submit">
-                        Send reset link
+                    {forgotPassword.isError && <p role="alert" className="mt-4 text-[14px] text-red-600">{forgotPassword.error.message}</p>}
+                    <button className="mx-auto mt-10 h-18 rounded-[10px] bg-black px-6 text-[18px] font-semibold text-white transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={forgotPassword.isPending}>
+                        {forgotPassword.isPending ? "Sending..." : "Send reset link"}
                     </button>
                 </form>
             )}

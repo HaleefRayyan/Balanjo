@@ -1,9 +1,19 @@
 import { RouterProvider } from "react-router-dom"
 import { useEffect } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import router from "./routes"
 import AuthProvider from "./context/AuthProvider"
 import CartProvider from "./context/CartProvider"
-import ContentProvider from "./context/ContentProvider"
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      // jangan ulangi permintaan yang ditolak (404/403); error jaringan dicoba sekali lagi
+      retry: (failureCount, error) => (error?.status === 0 || error?.status >= 500) && failureCount < 1,
+    },
+  },
+})
 
 function App() {
   useEffect(() => {
@@ -20,13 +30,13 @@ function App() {
   }, [])
 
   return (
-    <AuthProvider>
-      <ContentProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <CartProvider>
           <RouterProvider router={router} />
         </CartProvider>
-      </ContentProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

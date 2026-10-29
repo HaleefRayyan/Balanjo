@@ -3,14 +3,15 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import SectionHeader from "../../ui/SectionHeader"
 import Button from "../../ui/Button"
 import ForumPostCard from "./ForumPostCard"
-import { forumCategories } from "../../../data/forum"
-import { useContent } from "../../../context/content"
+import { Empty, ErrorMessage, Loading } from "../../ui/Status"
+import { forumCategories } from "../../../constants/categories"
+import { useForumPosts } from "../../../api/forum"
 
 const TRENDING_COUNT = 4
 
 // Filter kategori lewat ?category= (hanya berlaku di halaman /forum; di Get Started selalu semua)
 const ForumComp = ({ showHeader = false, limit })=>{
-    const { forumPosts } = useContent()
+    const { data: forumPosts = [], isPending, isError, error, refetch } = useForumPosts()
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
     const [showAllTrending, setShowAllTrending] = useState(false)
@@ -19,7 +20,7 @@ const ForumComp = ({ showHeader = false, limit })=>{
     const filtered = activeCategory ? forumPosts.filter((post) => post.category === activeCategory) : forumPosts
     const visiblePosts = limit ? filtered.slice(0, limit) : filtered
 
-    const byReplies = [...forumPosts].sort((a, b) => b.comments.length - a.comments.length)
+    const byReplies = [...forumPosts].sort((a, b) => b.commentCount - a.commentCount)
     const trending = showAllTrending ? byReplies : byReplies.slice(0, TRENDING_COUNT)
 
     return <section className="px-5 pb-20 sm:px-8 lg:px-[97.32px] lg:pb-30">
@@ -63,7 +64,7 @@ const ForumComp = ({ showHeader = false, limit })=>{
                             <li className="border-b border-[#E7E7E7] py-3 first:pt-0" key={post.id}>
                                 <Link to={`/forum/${post.id}`} className="block hover:text-button">
                                     <p className="text-base leading-[1.2]">{post.text}</p>
-                                    <span className="mt-1 block text-base text-button">{post.comments.length} balasan</span>
+                                    <span className="mt-1 block text-base text-button">{post.commentCount} balasan</span>
                                 </Link>
                             </li>
                         ))}
@@ -83,9 +84,9 @@ const ForumComp = ({ showHeader = false, limit })=>{
                         <Link to="/forum" className="text-button hover:underline">Hapus filter</Link>
                     </p>
                 )}
-                {visiblePosts.length === 0 && (
-                    <p className="rounded-lg bg-white px-6 py-12 text-center text-abu">Belum ada diskusi di kategori ini.</p>
-                )}
+                {isPending && <Loading />}
+                {isError && <ErrorMessage error={error} onRetry={refetch} />}
+                {!isPending && !isError && visiblePosts.length === 0 && <Empty text="Belum ada diskusi di kategori ini." />}
                 {visiblePosts.map((post) => <ForumPostCard key={post.id} post={post} />)}
                 {limit && filtered.length > limit && (
                     <Link to="/forum" className="block text-center text-button hover:underline">Lihat semua diskusi</Link>

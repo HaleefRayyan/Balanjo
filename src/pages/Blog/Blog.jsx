@@ -4,20 +4,20 @@ import PageBanner from "../../components/layout/PageBanner"
 import BlogComp from "../../components/sections/BlogComp"
 import Button from "../../components/ui/Button"
 import Search from "../../components/ui/Search"
-import { useContent } from "../../context/content"
-import { blogCategories } from "../../data/blogs"
+import { ErrorMessage } from "../../components/ui/Status"
+import { useBlogs } from "../../api/blogs"
+import { blogCategories } from "../../constants/categories"
+import useDebouncedValue from "../../hooks/useDebouncedValue"
 
 const Blog =()=>{
     const navigate = useNavigate();
-    const { blogs } = useContent()
     const [searchParams, setSearchParams] = useSearchParams()
     const category = searchParams.get("category") ?? ""
     // teks pencarian disimpan di state (bukan URL tiap ketikan, supaya tidak ada huruf hilang)
     const [searchText, setSearchText] = useState("")
 
-    const filtered = blogs.filter((blog) =>
-        (!category || blog.category === category) &&
-        blog.title.toLowerCase().includes(searchText.trim().toLowerCase()))
+    const q = useDebouncedValue(searchText.trim())
+    const blogs = useBlogs({ q, category })
 
     // kategori disimpan di URL (?category=) supaya bisa dibagikan / tetap saat kembali
     const updateCategory = (value) => setSearchParams(value ? { category: value } : {}, { replace: true })
@@ -47,7 +47,9 @@ const Blog =()=>{
                 </select>
                 <Button className="h-14 w-full lg:w-73 lg:shrink-0" onClick={() => navigate("/blog/new")}>Buat artikel kamu</Button>
             </div>
-            <BlogComp blogs={filtered} emptyText="Artikel tidak ditemukan." />
+            {blogs.isError
+                ? <ErrorMessage error={blogs.error} onRetry={blogs.refetch} />
+                : <BlogComp blogs={blogs.data ?? null} emptyText="Artikel tidak ditemukan." />}
         </div>
     </div>
         </>

@@ -26,7 +26,7 @@ const Navbar = ({ overlay = false }) => {
     const [userMenu, setUserMenu] = useState({ path: "", open: false });
     const location = useLocation()
     const navigate = useNavigate()
-    const { user, logout } = useAuth()
+    const { user, loading: authLoading, logout } = useAuth()
     const { count: cartCount } = useCart()
 
     const isTransparent = overlay && !isScrolled
@@ -49,8 +49,8 @@ const Navbar = ({ overlay = false }) => {
         setUserMenu({ path: location.pathname, open: !isUserMenuOpen })
     }
 
-    const handleLogout = () => {
-        logout()
+    const handleLogout = async () => {
+        await logout().catch(() => {}) // kalau server tidak bisa dihubungi, tetap kembali ke Home
         navigate("/")
     }
 
@@ -121,7 +121,9 @@ const Navbar = ({ overlay = false }) => {
                             {cartCount > 99 ? "99+" : cartCount}
                         </span>
                     </Link>
-                    {user ? (
+                    {authLoading ? (
+                        <div className="h-15 w-40" aria-hidden="true" />
+                    ) : user ? (
                         <div className="relative">
                             <button
                                 type="button"

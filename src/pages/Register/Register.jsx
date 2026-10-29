@@ -11,18 +11,26 @@ const fields = [
 
 const Register = () => {
     const navigate = useNavigate()
-    const { login } = useAuth()
+    const { register } = useAuth()
     const [error, setError] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault()
         const form = new FormData(event.currentTarget)
         if (form.get("password") !== form.get("confirmPassword")) {
             setError("Password dan Re-type Password tidak sama.")
             return
         }
-        login({ name: form.get("fullName"), email: form.get("email") })
-        navigate("/", { replace: true })
+        setError("")
+        setSubmitting(true)
+        try {
+            await register({ name: form.get("fullName"), email: form.get("email"), password: form.get("password") })
+            navigate("/", { replace: true })
+        } catch (registerError) {
+            setError(registerError.message)
+            setSubmitting(false)
+        }
     }
 
     return (
@@ -46,8 +54,8 @@ const Register = () => {
 
                 {error && <p role="alert" className="mt-4 text-[14px] text-red-600">{error}</p>}
 
-                <button className="mx-auto mt-10 h-18 rounded-[10px] bg-black px-6 text-[18px] font-semibold text-white transition-opacity hover:opacity-80" type="submit">
-                    Create Account
+                <button className="mx-auto mt-10 h-18 rounded-[10px] bg-black px-6 text-[18px] font-semibold text-white transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>
+                    {submitting ? "Creating..." : "Create Account"}
                 </button>
 
                 <div className="mt-12 border-t border-[#dedede] pt-10">

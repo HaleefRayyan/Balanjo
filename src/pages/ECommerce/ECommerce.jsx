@@ -2,7 +2,7 @@ import ProductList, { ProductSearch } from "../../components/sections/ProductLis
 import useProductQuery from "../../components/sections/ProductList/useProductQuery"
 import iklan from "../../assets/ECommerce/iklan.png"
 import iklanDua from "../../assets/ECommerce/iklanDua.png"
-import products, { productCategories } from "../../data/products"
+import { productCategories } from "../../constants/categories"
 import { Link } from "react-router-dom"
 
 const ECommerce = () => {
@@ -29,7 +29,7 @@ const ECommerce = () => {
             </div>
 
             <div className="mt-12">
-                <ProductList products={products} query={query} />
+                <ProductList query={query} />
             </div>
         </main>
     )

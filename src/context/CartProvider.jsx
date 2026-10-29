@@ -1,17 +1,14 @@
 import { useState } from "react"
 import { CartContext } from "./cart"
-import { findProduct } from "../data/products"
 import { readJSON, writeJSON } from "../utils/storage"
 
 const STORAGE_KEY = "balanjo:cart"
 const MAX_QUANTITY = 99
 
-// Item disimpan sebagai { key, productId, variant, quantity }; detail produk diambil dari data produk.
-// Produk yang sudah tidak ada dibuang saat keranjang dibaca.
-const readCart = () => readJSON(STORAGE_KEY, []).filter((item) => findProduct(item.productId))
-
+// Keranjang disimpan di browser sebagai { key, productId, variant, quantity }.
+// Nama & harga diambil dari API di halaman keranjang; harga final dihitung server saat checkout.
 const CartProvider = ({ children }) => {
-    const [items, setItems] = useState(readCart)
+    const [items, setItems] = useState(() => readJSON(STORAGE_KEY, []))
 
     const update = (updater) => {
         setItems((current) => {
@@ -38,14 +35,15 @@ const CartProvider = ({ children }) => {
 
     const removeItem = (key) => update((current) => current.filter((item) => item.key !== key))
 
+    // buang item yang produknya sudah tidak ada di server
+    const removeProducts = (productIds) => update((current) => current.filter((item) => !productIds.includes(item.productId)))
+
     const clear = () => update(() => [])
 
-    const lines = items.map((item) => ({ ...item, product: findProduct(item.productId) }))
     const count = items.reduce((sum, item) => sum + item.quantity, 0)
-    const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
 
     return (
-        <CartContext.Provider value={{ lines, count, subtotal, addItem, setQuantity, removeItem, clear }}>
+        <CartContext.Provider value={{ items, count, addItem, setQuantity, removeItem, removeProducts, clear }}>
             {children}
         </CartContext.Provider>
     )

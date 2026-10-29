@@ -2,15 +2,18 @@ import { Link } from "react-router-dom"
 import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import PageTitle from "../../../components/admin/PageTitle"
+import { ErrorMessage, Loading } from "../../../components/ui/Status"
 import { EyeIcon, TrashIcon } from "../../../components/ui/icons"
-import { useContent } from "../../../context/content"
+import { useDeleteForumPost, useForumPosts } from "../../../api/forum"
+import { formatShortDate } from "../../../utils/format"
 
 const Forums = () => {
-    const { forumPosts: posts, removeForumPost } = useContent()
+    const { data: posts, isPending, isError, error, refetch } = useForumPosts()
+    const deletePost = useDeleteForumPost()
 
     const handleDelete = (post) => {
         if (window.confirm(`Hapus forum "${post.text}"?`)) {
-            removeForumPost(post.id)
+            deletePost.mutate(post.id, { onError: (requestError) => window.alert(requestError.message) })
         }
     }
 
@@ -19,8 +22,8 @@ const Forums = () => {
         { key: "text", header: "Judul Forum", className: "max-w-80" },
         { key: "category", header: "Kategori", className: "font-medium" },
         { key: "author", header: "Uploader", className: "text-abu" },
-        { key: "replies", header: "Balasan", className: "text-abu", render: (post) => post.comments.length },
-        { key: "date", header: "Tanggal Upload", className: "text-abu" },
+        { key: "commentCount", header: "Balasan", className: "text-abu" },
+        { key: "createdAt", header: "Tanggal Upload", className: "text-abu", render: (post) => formatShortDate(new Date(post.createdAt)) },
         {
             key: "actions",
             header: "Aksi",
@@ -30,7 +33,7 @@ const Forums = () => {
                     <Link to={`/forum/${post.id}`} target="_blank" aria-label="Lihat forum" title="Lihat forum" className="rounded-md p-1 text-button hover:bg-button/10">
                         <EyeIcon />
                     </Link>
-                    <IconButton label="Hapus forum" onClick={() => handleDelete(post)}>
+                    <IconButton label="Hapus forum" disabled={deletePost.isPending} onClick={() => handleDelete(post)}>
                         <TrashIcon />
                     </IconButton>
                 </div>
@@ -41,7 +44,9 @@ const Forums = () => {
     return (
         <section>
             <PageTitle>Kelola Forum</PageTitle>
-            <DataTable columns={columns} rows={posts} emptyText="Belum ada forum." />
+            {isPending ? <Loading /> : isError ? <ErrorMessage error={error} onRetry={refetch} /> : (
+                <DataTable columns={columns} rows={posts} emptyText="Belum ada forum." />
+            )}
         </section>
     )
 }

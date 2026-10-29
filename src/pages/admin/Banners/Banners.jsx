@@ -3,33 +3,38 @@ import DataTable from "../../../components/admin/DataTable"
 import IconButton from "../../../components/admin/IconButton"
 import Modal from "../../../components/admin/Modal"
 import PageTitle from "../../../components/admin/PageTitle"
+import { ErrorMessage, Loading } from "../../../components/ui/Status"
 import { EditIcon, TrashIcon } from "../../../components/ui/icons"
 import Button from "../../../components/ui/Button"
-import { useContent } from "../../../context/content"
+import { useBanners, useDeleteBanner, useSaveBanner } from "../../../api/banners"
 
-// editing: null = modal tertutup, {} = tambah baru, banner = edit banner itu
-const BannerForm = ({ banner, takenIds, onSave, onCancel }) => {
+// banner: {} = tambah baru (isi label + gambar), banner yang ada = ganti gambarnya
+const BannerForm = ({ banner, onDone, onCancel }) => {
     const isNew = !banner.id
-    const [id, setId] = useState(banner.id ?? "")
-    const [image, setImage] = useState(banner.image ?? "")
+    const saveBanner = useSaveBanner()
+    const [label, setLabel] = useState(banner.label ?? "")
+    const [image, setImage] = useState(null) // { file, preview }
     const [error, setError] = useState("")
+    const preview = image?.preview ?? banner.image
 
     const handleFile = (event) => {
         const file = event.target.files[0]
-        if (file) setImage(URL.createObjectURL(file))
+        if (file) setImage({ file, preview: URL.createObjectURL(file) })
     }
 
     const handleSubmit = (event) => {
         event.preventDefault()
-        if (!id.trim() || !image) {
-            setError("Id banner dan gambar wajib diisi.")
+        if (!label.trim() || !image) {
+            setError(isNew ? "Id banner dan gambar wajib diisi." : "Pilih gambar baru.")
             return
         }
-        if (isNew && takenIds.includes(id.trim())) {
-            setError("Id banner sudah dipakai.")
-            return
-        }
-        onSave({ id: id.trim(), image })
+        const formData = new FormData()
+        if (isNew) formData.set("label", label.trim())
+        formData.set("image", image.file)
+        saveBanner.mutate({ id: banner.id, formData }, {
+            onSuccess: onDone,
+            onError: (requestError) => setError(requestError.message),
+        })
     }
 
     return (
@@ -37,8 +42,9 @@ const BannerForm = ({ banner, takenIds, onSave, onCancel }) => {
             <label className="flex flex-col gap-1 text-sm text-[#a6a6a6]">
                 Id Banner
                 <input
-                    value={id}
-                    onChange={(event) => setId(event.target.value)}
+                    value={label}
+                    maxLength={60}
+                    onChange={(event) => setLabel(event.target.value)}
                     disabled={!isNew}
                     className="h-11 rounded border border-[#adadad] px-3 text-sm text-[#333] outline-none focus:border-button disabled:bg-[#d9d9d9]"
                 />
@@ -47,42 +53,40 @@ const BannerForm = ({ banner, takenIds, onSave, onCancel }) => {
                 Gambar
                 <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={handleFile}
                     className="w-full rounded border border-[#adadad] text-sm text-[#404040] file:mr-4 file:border-0 file:border-r file:border-[#adadad] file:bg-[#d9d9d9] file:px-3 file:py-2 file:text-sm"
                 />
             </label>
-            {image && <img src={image} alt="Pratinjau banner" className="max-h-48 w-full rounded object-cover" />}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {preview && <img src={preview} alt="Pratinjau banner" className="max-h-48 w-full rounded object-cover" />}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             <div className="flex justify-end gap-3">
                 <button type="button" onClick={onCancel} className="cursor-pointer rounded-md border border-[#adadad] px-5 py-2 text-sm">Batal</button>
-                <Button type="submit" className="rounded-md px-5 py-2 text-sm">Simpan</Button>
+                <Button type="submit" disabled={saveBanner.isPending} className="rounded-md px-5 py-2 text-sm disabled:cursor-wait disabled:opacity-60">
+                    {saveBanner.isPending ? "Menyimpan..." : "Simpan"}
+                </Button>
             </div>
         </form>
     )
 }
 
 const Banners = () => {
-    const { banners, saveBanner, removeBanner } = useContent()
-    const [editing, setEditing] = useState(null)
-
-    const handleSave = (saved) => {
-        saveBanner(saved)
-        setEditing(null)
-    }
+    const { data: banners, isPending, isError, error, refetch } = useBanners()
+    const deleteBanner = useDeleteBanner()
+    const [editing, setEditing] = useState(null) // null = modal tertutup
 
     const handleDelete = (banner) => {
-        if (window.confirm(`Hapus ${banner.id}?`)) {
-            removeBanner(banner.id)
+        if (window.confirm(`Hapus ${banner.label}?`)) {
+            deleteBanner.mutate(banner.id, { onError: (requestError) => window.alert(requestError.message) })
         }
     }
 
     const columns = [
-        { key: "id", header: "Id Banner", className: "text-abu" },
+        { key: "label", header: "Id Banner", className: "text-abu" },
         {
             key: "image",
             header: "Gambar",
-            render: (banner) => <img src={banner.image} alt={banner.id} className="h-24 w-38 rounded object-cover" />,
+            render: (banner) => <img src={banner.image} alt={banner.label} className="h-24 w-38 rounded object-cover" />,
         },
         {
             key: "actions",
@@ -90,10 +94,10 @@ const Banners = () => {
             className: "whitespace-nowrap",
             render: (banner) => (
                 <div className="flex items-center gap-3">
-                    <IconButton label={`Edit ${banner.id}`} onClick={() => setEditing(banner)}>
+                    <IconButton label={`Edit ${banner.label}`} onClick={() => setEditing(banner)}>
                         <EditIcon />
                     </IconButton>
-                    <IconButton label={`Hapus ${banner.id}`} onClick={() => handleDelete(banner)}>
+                    <IconButton label={`Hapus ${banner.label}`} disabled={deleteBanner.isPending} onClick={() => handleDelete(banner)}>
                         <TrashIcon />
                     </IconButton>
                 </div>
@@ -106,11 +110,13 @@ const Banners = () => {
             <PageTitle action={<Button className="rounded-lg px-6 py-1.5 text-[20px]" onClick={() => setEditing({})}>Tambah</Button>}>
                 Kelola Banner E-Commerce
             </PageTitle>
-            <DataTable columns={columns} rows={banners} emptyText="Belum ada banner." />
+            {isPending ? <Loading /> : isError ? <ErrorMessage error={error} onRetry={refetch} /> : (
+                <DataTable columns={columns} rows={banners} emptyText="Belum ada banner." />
+            )}
 
             {editing && (
-                <Modal title={editing.id ? `Edit ${editing.id}` : "Tambah Banner"} onClose={() => setEditing(null)}>
-                    <BannerForm banner={editing} takenIds={banners.map((item) => item.id)} onSave={handleSave} onCancel={() => setEditing(null)} />
+                <Modal title={editing.id ? `Edit ${editing.label}` : "Tambah Banner"} onClose={() => setEditing(null)}>
+                    <BannerForm banner={editing} onDone={() => setEditing(null)} onCancel={() => setEditing(null)} />
                 </Modal>
             )}
         </section>

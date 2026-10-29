@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/auth"
 
@@ -5,13 +6,22 @@ const Login = () => {
 	const navigate = useNavigate()
 	const location = useLocation()
 	const { login } = useAuth()
+	const [error, setError] = useState("")
+	const [submitting, setSubmitting] = useState(false)
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault()
 		const form = new FormData(event.currentTarget)
-		const user = login({ email: form.get("email") })
-		const home = user.role === "admin" ? "/admin" : "/"
-		navigate(location.state?.from?.pathname || home, { replace: true })
+		setError("")
+		setSubmitting(true)
+		try {
+			const user = await login({ email: form.get("email"), password: form.get("password") })
+			const home = user.role === "admin" ? "/admin" : "/"
+			navigate(location.state?.from?.pathname || home, { replace: true })
+		} catch (loginError) {
+			setError(loginError.message)
+			setSubmitting(false)
+		}
 	}
 
 	return (
@@ -42,8 +52,10 @@ const Login = () => {
 					className="mt-2 h-18 w-full rounded-[10px] border border-[#c9c9c9] px-5 text-[16px] text-[#333] outline-none placeholder:text-[#999] focus:border-button"
 				/>
 
-				<button className="mx-auto mt-10 h-18 w-37.25 rounded-[10px] bg-black text-[18px] font-semibold text-white transition-opacity hover:opacity-80" type="submit">
-					Sign in
+				{error && <p role="alert" className="mt-4 text-[14px] text-red-600">{error}</p>}
+
+				<button className="mx-auto mt-10 h-18 w-37.25 rounded-[10px] bg-black text-[18px] font-semibold text-white transition-opacity hover:opacity-80 disabled:cursor-wait disabled:opacity-60" type="submit" disabled={submitting}>
+					{submitting ? "Signing in..." : "Sign in"}
 				</button>
 
 				<div className="mt-12 border-t border-[#dedede] pt-10">

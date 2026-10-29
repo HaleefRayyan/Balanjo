@@ -1,16 +1,108 @@
-# React + Vite
+# Balanjo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Campus community site with three features: **Forum**, **Blog**, and **E-Commerce** for student businesses, plus an **admin panel**.
 
-Currently, two official plugins are available:
+- **Frontend:** React 19 + Vite + Tailwind CSS 4, React Router, TanStack Query (repo root)
+- **Backend:** Node.js + Express 5 + Prisma + SQLite (`server/`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Requirements
 
-## React Compiler
+- Node.js **22.9 or newer** (`node --version`)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## First-time setup
 
-## Expanding the ESLint configuration
+From the repo root:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run setup
+```
+
+This installs the frontend and backend dependencies, creates `server/.env` with a random `JWT_SECRET`, creates the SQLite database (`server/prisma/dev.db`), and fills it with sample data.
+
+## Running the app
+
+```bash
+npm run dev:all
+```
+
+This starts both servers:
+
+| | URL |
+|---|---|
+| Website (Vite) | http://localhost:5173 |
+| API (Express) | http://localhost:3000 |
+
+Open **http://localhost:5173**. Vite forwards `/api` and `/uploads` to the API, so you only ever use port 5173.
+
+You can also run them separately with `npm run dev` (website) and `npm run dev:server` (API).
+
+### Sample accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@balanjo.com` | `admin12345` |
+| User | `budi@gmail.com` | `password123` |
+
+Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, anto@, mrc1na@, elizabeth@ `gmail.com`). Logging in as an admin opens the admin panel at `/admin`.
+
+## Database
+
+| Command (run in `server/`) | What it does |
+|---|---|
+| `npm run db:reset` | **Deletes all data**, recreates the tables, and reloads the sample data |
+| `npm run db:studio` | Opens Prisma Studio, a browser UI for viewing and editing the data |
+
+- The schema is in `server/prisma/schema.prisma`. After changing it, run `npx prisma migrate dev --name <change>` to create a migration.
+- Uploaded images are saved to `server/uploads/`. Uploads, the database and `.env` are not committed to Git.
+- To use PostgreSQL or MySQL instead of SQLite, change `provider` in the schema and `DATABASE_URL` in `server/.env`, then create the migrations again.
+
+## Forgot password
+
+No email service is connected yet. When someone requests a reset, the API prints the reset link in the **API terminal**:
+
+```
+[reset password] budi@gmail.com: http://localhost:5173/reset-password?token=...
+```
+
+Open that link to set a new password. Each link works once and expires after one hour.
+
+## Project structure
+
+```
+src/
+  api/          React Query hooks for each API resource (products, blogs, forum, banners, admin, auth)
+  components/   layout/ (Navbar, Footer, PageBanner), sections/, ui/, admin/
+  constants/    category lists (must match server/src/constants.js)
+  context/      AuthProvider (login state from /api/auth/me), CartProvider (cart stored in the browser)
+  layouts/      MainLayout, AuthLayout, AdminLayout
+  pages/        one folder per page; pages/admin/* for the admin panel
+  routes/       route table + ProtectedRoute
+server/
+  prisma/       schema, migrations, seed script
+  src/routes/   auth, blogs, forum, products, orders, banners, admin
+  src/utils/    validation, uploads, HTML sanitizing, response shapes
+```
+
+## Security notes
+
+- Passwords are hashed with bcrypt. Logins use an httpOnly, SameSite=Lax cookie, which page scripts cannot read and which is not sent on cross-site form posts.
+- Article HTML is sanitized on the server when saved and again with DOMPurify when shown.
+- Uploads accept JPG, PNG, WEBP and GIF up to 5 MB. SVG is rejected because it can contain scripts.
+- Login, register and password-reset requests are rate-limited per IP address.
+- Order prices are always recalculated on the server from the database.
+
+## Production build
+
+```bash
+npm run build                # builds the website into dist/
+npm --prefix server start    # the API also serves dist/ when it exists
+```
+
+Set `NODE_ENV=production` (this enables secure cookies, which need HTTPS), a strong `JWT_SECRET`, and `CLIENT_URL` (used in reset links) in `server/.env`.
+
+## Other scripts
+
+| Command | What it does |
+|---|---|
+| `npm run lint` | ESLint for the frontend and backend |
+| `npm run build` | Production build of the website |

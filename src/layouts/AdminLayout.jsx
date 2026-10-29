@@ -12,8 +12,8 @@ const AdminLayout = () => {
     const [sidebar, setSidebar] = useState({ path: "", open: false })
     const sidebarOpen = sidebar.open && sidebar.path === location.pathname
 
-    const handleLogout = () => {
-        logout()
+    const handleLogout = async () => {
+        await logout().catch(() => {})
         navigate("/login")
     }
 

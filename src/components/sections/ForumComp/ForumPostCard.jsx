@@ -4,17 +4,18 @@ import profileHighLine from "../../../assets/forum/profileHighLine.png"
 import profileMidLine from "../../../assets/forum/profileMidLine.png"
 import profileNoLine from "../../../assets/forum/profileNoLine.png"
 import profilePeapole from "../../../assets/forum/profilePeapole.svg"
-import { categoryColor } from "../../../data/forum"
+import { categoryColor } from "../../../constants/categories"
+import { formatShortDate } from "../../../utils/format"
 
 // Avatar dengan garis menuju avatar pembalas: garis panjang untuk post bergambar, pendek kalau ada balasan
 const avatarFor = (post) => {
-    if (post.comments.length === 0) return profileNoLine
+    if (post.commentCount === 0) return profileNoLine
     return post.image ? profileHighLine : profileMidLine
 }
 
 // linked: judul jadi link ke halaman detail (dimatikan di halaman detail itu sendiri)
 const ForumPostCard = ({ post, linked = true }) => {
-    const replyCount = post.comments.length
+    const replyCount = post.commentCount
     const title = <p className="mt-1 text-[20px] leading-tight text-[#222]">{post.text}</p>
 
     return (
@@ -51,7 +52,7 @@ const ForumPostCard = ({ post, linked = true }) => {
                                 <span>{replyCount} balasan</span>
                             </>
                         )}
-                        <span className="ml-auto">{post.date}</span>
+                        <span className="ml-auto">{formatShortDate(new Date(post.createdAt))}</span>
                     </div>
                 </div>
             </div>

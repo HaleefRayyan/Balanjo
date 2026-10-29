@@ -1,20 +1,18 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import PageBanner from "../../components/layout/PageBanner"
-import { useAuth } from "../../context/auth"
-import { useContent } from "../../context/content"
-import { forumCategories } from "../../data/forum"
+import { useCreateForumPost } from "../../api/forum"
+import { forumCategories } from "../../constants/categories"
 
 const NewDiscussion = () => {
-    const { user } = useAuth()
-    const { addForumPost } = useContent()
+    const createPost = useCreateForumPost()
     const navigate = useNavigate()
-    const [image, setImage] = useState("")
+    const [image, setImage] = useState(null) // { file, preview }
     const [error, setError] = useState("")
 
     const handleFile = (event) => {
         const file = event.target.files[0]
-        setImage(file ? URL.createObjectURL(file) : "")
+        setImage(file ? { file, preview: URL.createObjectURL(file) } : null)
     }
 
     const handleSubmit = (event) => {
@@ -26,8 +24,15 @@ const NewDiscussion = () => {
             setError("Isi diskusi dan kategori wajib diisi.")
             return
         }
-        const post = addForumPost({ text, category, image: image || undefined, author: user.name })
-        navigate(`/forum/${post.id}`)
+        setError("")
+        const formData = new FormData()
+        formData.set("text", text)
+        formData.set("category", category)
+        if (image) formData.set("image", image.file)
+        createPost.mutate(formData, {
+            onSuccess: (post) => navigate(`/forum/${post.id}`),
+            onError: (requestError) => setError(requestError.message),
+        })
     }
 
     return (
@@ -64,20 +69,21 @@ const NewDiscussion = () => {
                             Foto (opsional)
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
                                 onChange={handleFile}
                                 className="h-8.5 w-full rounded border border-[#adadad] text-sm text-[#404040] file:mr-6 file:h-full file:border-0 file:border-r file:border-[#adadad] file:bg-[#d9d9d9] file:px-3 file:text-sm file:text-[#404040]"
                             />
                         </label>
-                        {image && <img src={image} alt="Pratinjau foto" className="max-h-60 w-fit max-w-full rounded object-cover" />}
+                        {image && <img src={image.preview} alt="Pratinjau foto" className="max-h-60 w-fit max-w-full rounded object-cover" />}
 
                         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
                         <button
                             type="submit"
-                            className="h-10 w-31 cursor-pointer self-end rounded-md bg-button text-[16px] text-white transition-colors hover:bg-[#896d26]"
+                            disabled={createPost.isPending}
+                            className="h-10 w-31 cursor-pointer self-end rounded-md bg-button text-[16px] text-white transition-colors hover:bg-[#896d26] disabled:cursor-wait disabled:opacity-60"
                         >
-                            Kirim
+                            {createPost.isPending ? "Mengirim..." : "Kirim"}
                         </button>
                     </form>
                 </main>

@@ -2,30 +2,25 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import PageBanner from "../../components/layout/PageBanner"
 import RichTextEditor from "../../components/ui/RichTextEditor"
-import { useAuth } from "../../context/auth"
-import { useContent } from "../../context/content"
-import { blogCategories } from "../../data/blogs"
+import { useCreateBlog } from "../../api/blogs"
+import { blogCategories } from "../../constants/categories"
 import { slugify } from "../../utils/format"
 
-const hasText = (html) => {
-    const div = document.createElement("div")
-    div.innerHTML = html
-    return div.textContent.trim().length > 0
-}
+// DOMParser tidak menjalankan script / memuat gambar (beda dengan innerHTML di elemen biasa)
+const hasText = (html) => new DOMParser().parseFromString(html, "text/html").body.textContent.trim().length > 0
 
 const UploadArtikel = () => {
-    const { user } = useAuth()
-    const { addBlog } = useContent()
+    const createBlog = useCreateBlog()
     const navigate = useNavigate()
     const [title, setTitle] = useState("")
     const [category, setCategory] = useState("")
-    const [image, setImage] = useState("")
+    const [image, setImage] = useState(null) // { file, preview }
     const [body, setBody] = useState("")
     const [error, setError] = useState("")
 
     const handleFile = (event) => {
         const file = event.target.files[0]
-        setImage(file ? URL.createObjectURL(file) : "")
+        setImage(file ? { file, preview: URL.createObjectURL(file) } : null)
     }
 
     const handleSubmit = (event) => {
@@ -34,8 +29,16 @@ const UploadArtikel = () => {
             setError("Judul, kategori, dan isi artikel wajib diisi.")
             return
         }
-        const blog = addBlog({ title: title.trim(), category, body, image: image || undefined, author: user.name })
-        navigate(`/blog/${blog.slug}`)
+        setError("")
+        const formData = new FormData()
+        formData.set("title", title.trim())
+        formData.set("category", category)
+        formData.set("body", body)
+        if (image) formData.set("image", image.file)
+        createBlog.mutate(formData, {
+            onSuccess: (blog) => navigate(`/blog/${blog.slug}`),
+            onError: (requestError) => setError(requestError.message),
+        })
     }
 
     return (
@@ -86,12 +89,12 @@ const UploadArtikel = () => {
                         <input
                             type="file"
                             name="foto"
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
                             onChange={handleFile}
                             className="h-8.5 w-full rounded border border-[#adadad] text-sm text-[#404040] file:mr-6 file:h-full file:border-0 file:border-r file:border-[#adadad] file:bg-[#d9d9d9] file:px-3 file:text-sm file:text-[#404040]"
                         />
                     </label>
-                    {image && <img src={image} alt="Pratinjau foto" className="max-h-60 w-fit max-w-full rounded object-cover" />}
+                    {image && <img src={image.preview} alt="Pratinjau foto" className="max-h-60 w-fit max-w-full rounded object-cover" />}
 
                     <div className="flex flex-col gap-1 text-sm text-[#a6a6a6]">
                         <label htmlFor="body">Body</label>
@@ -102,9 +105,10 @@ const UploadArtikel = () => {
 
                     <button
                         type="submit"
-                        className="h-10 w-31 cursor-pointer self-end rounded-md bg-button text-[16px] text-white transition-colors hover:bg-[#896d26]"
+                        disabled={createBlog.isPending}
+                        className="h-10 w-31 cursor-pointer self-end rounded-md bg-button text-[16px] text-white transition-colors hover:bg-[#896d26] disabled:cursor-wait disabled:opacity-60"
                     >
-                        Kirim
+                        {createBlog.isPending ? "Mengirim..." : "Kirim"}
                     </button>
                 </form>
             </main>

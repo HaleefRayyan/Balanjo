@@ -1,6 +1,7 @@
 import { useState } from "react"
 import PageTitle from "../../../components/admin/PageTitle"
 import Button from "../../../components/ui/Button"
+import { useChangePassword } from "../../../api/auth"
 
 const fields = [
     { name: "oldPassword", label: "Password Lama" },
@@ -12,11 +13,13 @@ const MIN_LENGTH = 8
 
 const ChangePassword = () => {
     const [message, setMessage] = useState(null)
+    const changePassword = useChangePassword()
 
-    // Belum ada backend: hanya validasi di sisi klien
+    // cek cepat di browser dulu; password lama diperiksa server
     const handleSubmit = (event) => {
         event.preventDefault()
-        const form = new FormData(event.currentTarget)
+        const formElement = event.currentTarget
+        const form = new FormData(formElement)
         const newPassword = form.get("newPassword")
 
         if (newPassword.length < MIN_LENGTH) {
@@ -26,8 +29,13 @@ const ChangePassword = () => {
         } else if (newPassword === form.get("oldPassword")) {
             setMessage({ type: "error", text: "Password baru harus berbeda dari password lama." })
         } else {
-            setMessage({ type: "success", text: "Password berhasil diganti." })
-            event.currentTarget.reset()
+            changePassword.mutate({ oldPassword: form.get("oldPassword"), newPassword }, {
+                onSuccess: () => {
+                    setMessage({ type: "success", text: "Password berhasil diganti." })
+                    formElement.reset()
+                },
+                onError: (error) => setMessage({ type: "error", text: error.message }),
+            })
         }
     }
 
@@ -54,7 +62,7 @@ const ChangePassword = () => {
                             {message.text}
                         </p>
                     )}
-                    <Button type="submit" className="rounded-lg px-10 py-2 text-[20px]">Simpan</Button>
+                    <Button type="submit" disabled={changePassword.isPending} className="rounded-lg px-10 py-2 text-[20px] disabled:cursor-wait disabled:opacity-60">{changePassword.isPending ? "Menyimpan..." : "Simpan"}</Button>
                 </div>
             </form>
         </section>

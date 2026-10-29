@@ -4,7 +4,8 @@ import ECommerceComp from "../../components/sections/ECommerceComp"
 import { ProductSearch } from "../../components/sections/ProductList"
 import Button from "../../components/ui/Button"
 import QuantityInput from "../../components/ui/QuantityInput"
-import products, { findProduct } from "../../data/products"
+import { useProduct, useProducts } from "../../api/products"
+import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { useCart } from "../../context/cart"
 import { formatRupiah } from "../../utils/format"
 import NotFound from "../NotFound"
@@ -15,10 +16,10 @@ const ProductDetail = ({ product }) => {
     const [quantity, setQuantity] = useState(1)
     const [variant, setVariant] = useState("")
     const [message, setMessage] = useState(null)
-    const recommendations = products.filter((item) => item.id !== product.id).slice(0, 4)
+    const recommendations = useProducts({ excludeId: product.id, pageSize: 4 })
 
     const handleAdd = () => {
-        if (product.variants && !variant) {
+        if (product.variants.length > 0 && !variant) {
             setMessage({ type: "error", text: "Pilih variasi dulu ya." })
             return
         }
@@ -43,7 +44,7 @@ const ProductDetail = ({ product }) => {
                         <span className="text-xl font-medium">{formatRupiah(product.price)}</span>
                     </div>
 
-                    {product.variants && (
+                    {product.variants.length > 0 && (
                         <div className="mt-6 border-t border-[#eeeeee] pt-5">
                             <label className="text-xs text-[#666]" htmlFor="variant">Variasi</label>
                             <select
@@ -76,7 +77,7 @@ const ProductDetail = ({ product }) => {
                     <span className="h-0.75 w-16 bg-button" />
                     <h2 className="text-xl font-semibold sm:text-2xl">Rekomendasi lainnya</h2>
                 </div>
-                <ECommerceComp products={recommendations} />
+                <ECommerceComp products={recommendations.data?.products ?? null} emptyText="Belum ada rekomendasi." />
             </section>
         </main>
     )
@@ -84,9 +85,11 @@ const ProductDetail = ({ product }) => {
 
 const DetailProduct = () => {
     const { id } = useParams()
-    const product = findProduct(id)
+    const { data: product, isPending, isError, error, refetch } = useProduct(id)
 
-    if (!product) return <NotFound />
+    if (isPending) return <main className="px-5 pt-16 sm:px-8 lg:px-[6.5vw]"><Loading /></main>
+    if (isError && error.status === 404) return <NotFound />
+    if (isError) return <main className="px-5 pt-16 sm:px-8 lg:px-[6.5vw]"><ErrorMessage error={error} onRetry={refetch} /></main>
 
     return <ProductDetail key={product.id} product={product} />
 }
