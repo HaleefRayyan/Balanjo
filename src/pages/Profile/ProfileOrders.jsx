@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import Modal from "../../components/admin/Modal"
 import Button from "../../components/ui/Button"
 import { StarInput, StarRating } from "../../components/ui/Stars"
@@ -9,8 +9,10 @@ import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { useCancelOrder, useMyOrders } from "../../api/orders"
 import { usePayOrder } from "../../api/payments"
 import { orderStatus, paymentStatus } from "../../constants/orders"
+import { refundStatus } from "../../constants/shop"
 import { formatCode, formatDateTime, formatLongDate, formatRupiah } from "../../utils/format"
 import ProfileCard from "./ProfileCard"
+import { useCart } from "../../context/cart"
 
 // Ulasan untuk satu item pesanan yang sudah Selesai
 const ReviewModal = ({ item, onClose }) => {
@@ -52,10 +54,24 @@ const ReviewModal = ({ item, onClose }) => {
 const canCancel = (order) => order.payment.status === "UNPAID"
     || (order.payment.status === "PAID" && !order.payment.online && order.items.every((item) => item.status === "PENDING"))
 
+// Pesanan yang tidak jadi (kedaluwarsa / gagal / dibatalkan) bisa dipesan lagi: produknya masuk keranjang
+const canReorder = (order) => ["EXPIRED", "FAILED", "CANCELLED"].includes(order.payment.status)
+    || order.items.every((item) => item.status === "CANCELLED")
+
 const ProfileOrders = () => {
     const { data: orders, isPending, isError, error, refetch } = useMyOrders()
     const cancelOrder = useCancelOrder()
     const payOrder = usePayOrder()
+    const { addItem } = useCart()
+    const navigate = useNavigate()
+
+    // produk yang sudah dihapus dilewati; stok dicek lagi di halaman keranjang
+    const handleReorder = (order) => {
+        for (const item of order.items.filter((line) => line.productId && line.photo)) {
+            addItem(item.productId, item.variant ?? undefined, item.quantity)
+        }
+        navigate("/cart")
+    }
     const [reviewing, setReviewing] = useState(null)
 
     const handlePay = (order) => {
@@ -72,6 +88,7 @@ const ProfileOrders = () => {
         ...item,
         rowId: item.id,
         order,
+        refund: order.refunds.find((refund) => refund.orderItemId === item.id),
         firstOfOrder: index === 0,
     })))
 
@@ -102,6 +119,12 @@ const ProfileOrders = () => {
                             </button>
                         </>
                     )}
+                    {row.refund && (
+                        <span className="text-xs text-abu">{refundStatus[row.refund.status].label} · {formatRupiah(row.refund.amount)}</span>
+                    )}
+                    {row.firstOfOrder && row.order.refunds.filter((refund) => !refund.orderItemId).map((refund) => (
+                        <span key={refund.id} className="text-xs text-abu">{refundStatus[refund.status].label} · {formatRupiah(refund.amount)}</span>
+                    ))}
                     {row.status === "DONE" && (row.review
                         ? <StarRating value={row.review.rating} className="h-3.5 w-3.5" />
                         : row.productId && (
@@ -109,6 +132,11 @@ const ProfileOrders = () => {
                                 Beri ulasan
                             </button>
                         ))}
+                    {row.firstOfOrder && canReorder(row.order) && row.order.items.some((item) => item.productId && item.photo) && (
+                        <button type="button" onClick={() => handleReorder(row.order)} className="cursor-pointer text-xs font-medium text-button hover:underline">
+                            Pesan lagi
+                        </button>
+                    )}
                     {row.firstOfOrder && canCancel(row.order) && (
                         <button type="button" disabled={cancelOrder.isPending} onClick={() => handleCancel(row.order)} className="cursor-pointer text-xs text-red-600 hover:underline disabled:opacity-50">
                             Batalkan pesanan

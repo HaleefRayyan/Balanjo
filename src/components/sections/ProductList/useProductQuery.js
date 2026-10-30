@@ -9,8 +9,13 @@ const useProductQuery = () => {
 
     const updateQuery = (value) => {
         setQuery(value)
-        // buang ?q= lama dan kembali ke halaman 1
-        if (searchParams.has("q") || searchParams.has("page")) setSearchParams({}, { replace: true })
+        // buang ?q= lama dan kembali ke halaman 1 (urutan & filter harga tetap)
+        if (searchParams.has("q") || searchParams.has("page")) {
+            const params = new URLSearchParams(searchParams)
+            params.delete("q")
+            params.delete("page")
+            setSearchParams(params, { replace: true })
+        }
     }
 
     return [query, updateQuery]

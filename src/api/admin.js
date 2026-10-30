@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "./client"
+import { api, toQuery } from "./client"
 
 export const useAdminStats = () =>
     useQuery({
@@ -42,6 +42,29 @@ export const useProcessPayout = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn: ({ id, status, note }) => api(`/admin/payouts/${id}`, { method: "PATCH", body: { status, note } }).then((data) => data.payout),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+    })
+}
+
+// ---------- Pesanan & refund ----------
+
+export const useAdminOrders = ({ payment, page }) =>
+    useQuery({
+        queryKey: ["admin", "orders", payment ?? "all", page],
+        queryFn: () => api(`/admin/orders${toQuery({ payment, page })}`),
+        placeholderData: (previous) => previous,
+    })
+
+export const useAdminRefunds = (status) =>
+    useQuery({
+        queryKey: ["admin", "refunds", status ?? "all"],
+        queryFn: () => api(`/admin/refunds${toQuery({ status })}`).then((data) => data.refunds),
+    })
+
+export const useMarkRefunded = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, note }) => api(`/admin/refunds/${id}`, { method: "PATCH", body: { note } }).then((data) => data.refund),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
     })
 }

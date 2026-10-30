@@ -40,6 +40,7 @@ model User {
   payoutAccountName   String?
   payouts             Payout[]             @relation("SellerPayouts")
   processedPayouts    Payout[]             @relation("ProcessedPayouts")
+  processedRefunds    Refund[]             @relation("ProcessedRefunds")
 }
 
 model Blog {
@@ -120,6 +121,7 @@ model Order {
   paymentType      String? // mis. qris, gopay, bank_transfer
   paymentExpiresAt DateTime?
   paidAt           DateTime?
+  refunds          Refund[]
   items            OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
   createdAt        DateTime    @default(now())
 }
@@ -139,6 +141,7 @@ model OrderItem {
   status      String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
   platformFee Int      @default(0) // potongan platform (dihitung saat checkout dari PLATFORM_FEE_PERCENT)
   review      Review?
+  refund      Refund?
 
   @@index([sellerId])
 }
@@ -224,5 +227,29 @@ model Payout {
   createdAt     DateTime  @default(now())
 
   @@index([sellerId])
+  @@index([status])
+}
+
+// Pengembalian dana ke pembeli untuk pesanan yang sudah dibayar online.
+// Dibuat otomatis: item dibatalkan seller setelah dibayar, atau pembayaran masuk setelah pesanan ditutup.
+// Admin mengembalikan dana secara manual (dashboard Midtrans / transfer), lalu menandai REFUNDED.
+model Refund {
+  id            Int        @id @default(autoincrement())
+  key           String     @unique // "item:<id>" / "late:<orderId>": satu refund per kejadian
+  orderId       Int
+  order         Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId   Int?       @unique
+  orderItem     OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  amount        Int
+  reason        String // SELLER_CANCELLED | LATE_PAYMENT
+  description   String
+  status        String     @default("PENDING") // PENDING | REFUNDED
+  adminNote     String?
+  processedById Int?
+  processedBy   User?      @relation("ProcessedRefunds", fields: [processedById], references: [id], onDelete: SetNull)
+  processedAt   DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@index([orderId])
   @@index([status])
 }

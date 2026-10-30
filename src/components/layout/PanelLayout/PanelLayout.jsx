@@ -40,11 +40,16 @@ const PanelLayout = ({ menu, menuLabel, topbarLeft, sidebarHeader, sidebarFooter
                 {sidebarHeader}
                 <nav className="flex-1 overflow-y-auto" aria-label={menuLabel}>
                     <ul className="space-y-1">
-                        {menu.map(({ label, to, icon: Icon, end }) => (
+                        {menu.map(({ label, to, icon: Icon, end, badge }) => (
                             <li key={to}>
                                 <NavLink to={to} end={end} className={({ isActive }) => linkClass(isActive)}>
                                     {Icon && <Icon className="h-5 w-5 shrink-0" />}
                                     {label}
+                                    {badge > 0 && (
+                                        <span className="ml-auto mr-4 min-w-5 rounded-full bg-red-600 px-1.5 text-center text-xs font-semibold leading-5 text-white" aria-label={`${badge} baru`}>
+                                            {badge > 99 ? "99+" : badge}
+                                        </span>
+                                    )}
                                 </NavLink>
                             </li>
                         ))}

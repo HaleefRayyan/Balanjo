@@ -32,7 +32,7 @@ const deliverySchema = z.object({
 }).refine((data) => data.method !== "DELIVERY" || (data.address && data.address.length >= 5), {
     message: "Isi titik temu / alamat pengantaran (minimal 5 karakter).",
 })
-const withItems = { items: { include: itemDetails, orderBy: { id: "asc" } } }
+const withItems = { items: { include: itemDetails, orderBy: { id: "asc" } }, refunds: { orderBy: { id: "asc" } } }
 
 // Harga selalu dihitung ulang di server dari database, bukan dari keranjang di browser
 router.post("/", async (req, res) => {

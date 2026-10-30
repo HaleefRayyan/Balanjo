@@ -43,6 +43,8 @@ import Banners from "../pages/admin/Banners";
 import BannerRequests from "../pages/admin/BannerRequests";
 import ChangePassword from "../pages/admin/ChangePassword";
 import Payouts from "../pages/admin/Payouts";
+import AdminOrders from "../pages/admin/Orders";
+import Refunds from "../pages/admin/Refunds";
 
 const routes = [
     {
@@ -140,6 +142,8 @@ const routes = [
                     { path: "forums", element: <Forums /> },
                     { path: "e-commerce", element: <Banners /> },
                     { path: "e-commerce/requests", element: <BannerRequests /> },
+                    { path: "orders", element: <AdminOrders /> },
+                    { path: "orders/refunds", element: <Refunds /> },
                     { path: "payouts", element: <Payouts /> },
                     { path: "password", element: <ChangePassword /> },
                 ],

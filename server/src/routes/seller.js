@@ -3,7 +3,7 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
-import { ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
+import { DELIVERY_FEE_PER_SELLER, ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
 import { config } from "../config.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
@@ -47,10 +47,13 @@ router.get("/stats", async (req, res) => {
         where: { sellerId: req.user.id, status: { not: "CANCELLED" }, ...paid },
         select: { orderId: true, price: true, quantity: true },
     })
+    // item dibayar yang belum diproses seller (badge "Pesanan" di Seller Centre)
+    const toProcess = await prisma.orderItem.count({ where: { sellerId: req.user.id, status: "PENDING", ...paid } })
     res.json({
         stats: {
             revenue: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
             orders: new Set(items.map((item) => item.orderId)).size,
+            toProcess,
         },
     })
 })
@@ -166,7 +169,7 @@ const rank = (status) => ORDER_ITEM_STATUSES.indexOf(status)
 
 router.patch("/order-items/:id", async (req, res) => {
     const { status } = parse(z.object({ status: z.enum(ORDER_ITEM_STATUSES, { error: "Status tidak valid." }) }), req.body)
-    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) }, include: { order: { select: { paymentStatus: true } } } })
+    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) }, include: { order: { select: { paymentStatus: true, paymentRef: true, deliveryMethod: true } } } })
     if (!item || item.sellerId !== req.user.id || item.order.paymentStatus !== "PAID") throw notFound("Item pesanan")
 
     if (item.status === "DONE" || item.status === "CANCELLED") {
@@ -181,11 +184,27 @@ router.patch("/order-items/:id", async (req, res) => {
 
     // Hanya berlaku kalau status belum berubah sejak dibaca (mis. pembeli membatalkan bersamaan).
     // Dibatalkan seller -> stok dikembalikan (kalau produknya masih ada).
+    // Sudah dibayar online -> refund dibuat untuk admin: harga item, ditambah ongkos antar
+    // kalau tidak ada lagi item seller ini yang tersisa di pesanan (tidak jadi diantar).
     const updated = await prisma.$transaction(async (tx) => {
         const { count } = await tx.orderItem.updateMany({ where: { id: item.id, status: item.status }, data: { status } })
         if (count === 0) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
         if (status === "CANCELLED" && item.productId) {
             await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
+        }
+        if (status === "CANCELLED" && item.order.paymentRef) {
+            const remaining = await tx.orderItem.count({ where: { orderId: item.orderId, sellerId: req.user.id, status: { not: "CANCELLED" } } })
+            const shipping = item.order.deliveryMethod === "DELIVERY" && remaining === 0 ? DELIVERY_FEE_PER_SELLER : 0
+            await tx.refund.create({
+                data: {
+                    key: `item:${item.id}`,
+                    orderId: item.orderId,
+                    orderItemId: item.id,
+                    amount: item.price * item.quantity + shipping,
+                    reason: "SELLER_CANCELLED",
+                    description: `${item.name}${item.variant ? ` (${item.variant})` : ""} × ${item.quantity} dibatalkan seller${shipping ? " + ongkos antar" : ""}`,
+                },
+            })
         }
         return tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
     })

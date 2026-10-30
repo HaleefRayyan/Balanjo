@@ -88,6 +88,7 @@ export const serializeOrderItem = (item) => ({
     photo: item.product?.photoUrl ?? null, // null kalau produknya sudah dihapus
     seller: item.seller?.name ?? null,
     review: item.review ? { id: item.review.id, rating: item.review.rating } : null,
+    platformFee: item.platformFee,
 })
 
 export const serializeDelivery = (order) => ({
@@ -113,6 +114,19 @@ export const serializePayout = (payout) => ({
     seller: payout.seller ? { id: payout.seller.id, name: payout.seller.name, email: payout.seller.email } : undefined,
     processedAt: payout.processedAt,
     createdAt: payout.createdAt,
+})
+
+export const serializeRefund = (refund) => ({
+    id: refund.id,
+    orderId: refund.orderId,
+    orderItemId: refund.orderItemId,
+    amount: refund.amount,
+    reason: refund.reason,
+    description: refund.description,
+    status: refund.status,
+    adminNote: refund.adminNote,
+    processedAt: refund.processedAt,
+    createdAt: refund.createdAt,
 })
 
 // online: dibayar / dibuat lewat Midtrans (false untuk pesanan lama & mode development)
@@ -142,6 +156,7 @@ export const serializeOrder = (order) => ({
     shippingFee: order.shippingFee,
     delivery: serializeDelivery(order),
     payment: serializePayment(order),
+    refunds: order.refunds?.map(serializeRefund) ?? [],
     createdAt: order.createdAt,
     items: order.items?.map(serializeOrderItem),
 })

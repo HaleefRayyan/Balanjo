@@ -17,16 +17,27 @@ export const closeUnpaidOrder = (orderId, paymentStatus) => prisma.$transaction(
     return true
 })
 
-const markPaid = async (order, paymentType) => {
-    const { count } = await prisma.order.updateMany({
-        where: { id: order.id, paymentStatus: { not: "PAID" } },
-        data: { paymentStatus: "PAID", paymentType: paymentType ?? null, paidAt: new Date() },
-    })
-    // dibayar setelah pesanan sempat ditutup (sangat jarang): item sudah batal, uang perlu dikembalikan
-    if (count && order.paymentStatus !== "UNPAID") {
-        console.warn(`Pesanan ${order.id} dibayar setelah berstatus ${order.paymentStatus}: perlu refund.`)
+const markPaid = (order, paymentType) => prisma.$transaction(async (tx) => {
+    const paid = { paymentStatus: "PAID", paymentType: paymentType ?? null, paidAt: new Date() }
+    const { count } = await tx.order.updateMany({ where: { id: order.id, paymentStatus: "UNPAID" }, data: paid })
+    if (count) return
+    // dibayar setelah pesanan sempat ditutup (kedaluwarsa / dibatalkan): item sudah batal dan stok sudah kembali,
+    // jadi seluruh pembayaran dikembalikan (refund untuk admin)
+    const late = await tx.order.updateMany({ where: { id: order.id, paymentStatus: { in: ["EXPIRED", "FAILED", "CANCELLED"] } }, data: paid })
+    if (late.count) {
+        await tx.refund.upsert({
+            where: { key: `late:${order.id}` },
+            create: {
+                key: `late:${order.id}`,
+                orderId: order.id,
+                amount: order.total,
+                reason: "LATE_PAYMENT",
+                description: `Pembayaran masuk setelah pesanan ${order.paymentStatus === "CANCELLED" ? "dibatalkan" : "kedaluwarsa"}`,
+            },
+            update: {},
+        })
     }
-}
+})
 
 // Terapkan data transaksi Midtrans (dari notifikasi atau cek status) ke pesanan
 export const applyTransaction = async (order, transaction) => {
