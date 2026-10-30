@@ -4,6 +4,7 @@ import Button from "../../ui/Button"
 import { useCart } from "../../../context/cart"
 import { useAuth } from "../../../context/auth"
 import { formatRupiah } from "../../../utils/format"
+import { StarRating } from "../../ui/Stars"
 
 const ProductCard = ({ product }) => {
     const { addItem } = useCart()
@@ -34,6 +35,12 @@ const ProductCard = ({ product }) => {
                 <h3 className="min-h-8 text-sm font-normal leading-tight sm:min-h-10.5 sm:text-[18px]">
                     <Link to={link} className="hover:text-button">{product.name}</Link>
                 </h3>
+                {product.rating?.count > 0 && (
+                    <span className="mt-1 flex items-center gap-1 text-[11px] text-abu sm:text-xs">
+                        <StarRating value={product.rating.average} className="h-3 w-3" />
+                        {product.rating.average} ({product.rating.count})
+                    </span>
+                )}
                 <span className="mt-2 text-base font-semibold sm:mt-4 sm:text-[20px]">{formatRupiah(product.price)}</span>
                 {isOwnProduct ? (
                     <Link to="/seller/products" className="mt-2 flex h-9 w-full max-w-37.5 items-center justify-center rounded-md border border-button text-[11px] text-button sm:mt-4 sm:h-11 sm:text-[14px]">

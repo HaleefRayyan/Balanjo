@@ -10,6 +10,8 @@ import { useCart } from "../../context/cart"
 import { useAuth } from "../../context/auth"
 import { formatRupiah } from "../../utils/format"
 import NotFound from "../NotFound"
+import { StarRating } from "../../components/ui/Stars"
+import ProductReviews from "./ProductReviews"
 
 // Dipisah dan diberi key={product.id} supaya variasi & jumlah kembali ke awal saat pindah produk
 const ProductDetail = ({ product }) => {
@@ -44,6 +46,12 @@ const ProductDetail = ({ product }) => {
                 <div className="flex flex-col justify-center py-2 lg:py-6">
                     <h1 className="text-3xl font-semibold leading-tight text-[#2d2d2d] sm:text-4xl">{product.name}</h1>
                     {product.seller && <p className="mt-1 text-sm text-abu">Dijual oleh <span className="font-medium text-[#555]">{product.seller}</span></p>}
+                    {product.rating.count > 0 && (
+                        <a href="#reviews-title" className="mt-2 flex items-center gap-2 text-sm text-[#555] hover:text-button">
+                            <StarRating value={product.rating.average} />
+                            {product.rating.average} ({product.rating.count} ulasan)
+                        </a>
+                    )}
                     <p className="mt-3 max-w-xl whitespace-pre-line text-xs leading-relaxed text-abu">{product.description}</p>
 
                     <div className="mt-4 flex items-center gap-3">
@@ -87,6 +95,8 @@ const ProductDetail = ({ product }) => {
                     )}
                 </div>
             </section>
+
+            <ProductReviews product={product} />
 
             <section className="mt-10 sm:mt-12">
                 <div className="mb-6 flex items-center gap-3 text-button">

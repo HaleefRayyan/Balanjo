@@ -32,6 +32,8 @@ model User {
   sales          OrderItem[] // item pesanan untuk produk yang dia jual
   bannerRequests BannerRequest[]
   resetTokens    PasswordResetToken[]
+  reviews        Review[]
+  cartItems      CartItem[]
 }
 
 model Blog {
@@ -86,18 +88,27 @@ model Product {
   seller         User?           @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   orderItems     OrderItem[]
   bannerRequests BannerRequest[]
+  reviews        Review[]
+  cartItems      CartItem[]
   createdAt      DateTime        @default(now())
 
   @@index([category])
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
-  userId    Int
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  total     Int
-  items     OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
-  createdAt DateTime    @default(now())
+  id             Int         @id @default(autoincrement())
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total          Int // subtotal produk + ongkos antar
+  shippingFee    Int         @default(0)
+  // pengiriman (diisi saat checkout)
+  deliveryMethod String      @default("PICKUP") // PICKUP (ambil di kampus) | DELIVERY (antar di area kampus)
+  recipientName  String      @default("")
+  phone          String      @default("")
+  address        String? // titik temu / alamat, wajib untuk DELIVERY
+  note           String?
+  items          OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
+  createdAt      DateTime    @default(now())
 }
 
 model OrderItem {
@@ -113,8 +124,40 @@ model OrderItem {
   variant   String?
   quantity  Int
   status    String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
+  review    Review?
 
   @@index([sellerId])
+}
+
+// Ulasan hanya dari pembeli yang item pesanannya sudah Selesai, satu ulasan per item pesanan
+model Review {
+  id          Int       @id @default(autoincrement())
+  rating      Int // 1-5
+  comment     String    @default("")
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItemId Int       @unique
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+}
+
+// Keranjang user yang login (tersimpan di server, sama di semua perangkat).
+// Tamu memakai keranjang di browser; digabung ke sini saat login.
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   String   @default("") // "" = tanpa variasi
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId, variant])
 }
 
 model Banner {

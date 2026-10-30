@@ -6,7 +6,7 @@ import { prisma } from "../db.js"
 import { ORDER_ITEM_STATUSES, PRODUCT_CATEGORIES } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
-import { serializeBannerRequest, serializeOrderItem, serializeProduct } from "../utils/serialize.js"
+import { serializeBannerRequest, serializeDelivery, serializeOrderItem, serializeProduct } from "../utils/serialize.js"
 import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
@@ -127,7 +127,12 @@ router.get("/orders", async (req, res) => {
         where: { sellerId: req.user.id },
         include: {
             product: { select: { photoUrl: true } },
-            order: { select: { id: true, createdAt: true, user: { select: { name: true, email: true } } } },
+            order: {
+                select: {
+                    id: true, createdAt: true, deliveryMethod: true, recipientName: true, phone: true, address: true, note: true,
+                    user: { select: { name: true, email: true } },
+                },
+            },
         },
         orderBy: [{ order: { createdAt: "desc" } }, { id: "asc" }],
     })
@@ -139,6 +144,7 @@ router.get("/orders", async (req, res) => {
                 orderId: item.orderId,
                 createdAt: item.order.createdAt,
                 buyer: { name: item.order.user.name, email: item.order.user.email },
+                delivery: serializeDelivery(item.order),
                 items: [],
             })
         }

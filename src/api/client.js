@@ -8,7 +8,8 @@ export class ApiError extends Error {
 }
 
 // body: object -> JSON; FormData -> multipart (untuk upload gambar)
-export const api = async (path, { method = "GET", body } = {}) => {
+// keepalive: request tetap terkirim walau halaman sedang ditutup / di-reload
+export const api = async (path, { method = "GET", body, keepalive } = {}) => {
     const isForm = body instanceof FormData
     let response
     try {
@@ -17,6 +18,7 @@ export const api = async (path, { method = "GET", body } = {}) => {
             credentials: "same-origin",
             headers: body && !isForm ? { "Content-Type": "application/json" } : undefined,
             body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+            keepalive,
         })
     } catch {
         throw new ApiError("Tidak bisa terhubung ke server. Pastikan backend berjalan.", 0)

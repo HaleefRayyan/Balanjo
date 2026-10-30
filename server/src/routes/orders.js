@@ -1,6 +1,7 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
+import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeOrder } from "../utils/serialize.js"
@@ -8,12 +9,31 @@ import { serializeOrder } from "../utils/serialize.js"
 const router = Router()
 router.use(requireAuth)
 
-const itemDetails = { product: { select: { photoUrl: true } }, seller: { select: { name: true } } }
+const itemDetails = {
+    product: { select: { photoUrl: true } },
+    seller: { select: { name: true } },
+    review: { select: { id: true, rating: true } },
+}
+
+// Nomor HP Indonesia: 08xx / 628xx / +628xx, spasi & tanda hubung diabaikan
+const phone = z.string().transform((value) => value.replace(/[\s-]/g, ""))
+    .refine((value) => /^(\+62|62|0)8\d{7,12}$/.test(value), "Nomor HP/WhatsApp tidak valid (contoh: 081234567890).")
+
+const deliverySchema = z.object({
+    method: z.enum(DELIVERY_METHODS, { error: "Pilih cara pengiriman." }),
+    recipientName: z.string().trim().min(1, "Nama penerima wajib diisi.").max(80),
+    phone,
+    address: z.string().trim().max(300).optional().transform((value) => value || null),
+    note: z.string().trim().max(300).optional().transform((value) => value || null),
+}).refine((data) => data.method !== "DELIVERY" || (data.address && data.address.length >= 5), {
+    message: "Isi titik temu / alamat pengantaran (minimal 5 karakter).",
+})
 const withItems = { items: { include: itemDetails, orderBy: { id: "asc" } } }
 
 // Harga selalu dihitung ulang di server dari database, bukan dari keranjang di browser
 router.post("/", async (req, res) => {
-    const { items } = parse(z.object({
+    const { items, delivery } = parse(z.object({
+        delivery: deliverySchema,
         items: z.array(z.object({
             productId: z.number().int().positive(),
             variant: z.string().max(50).optional(),
@@ -41,7 +61,11 @@ router.post("/", async (req, res) => {
             quantity: item.quantity,
         }
     })
-    const total = lines.reduce((sum, line) => sum + line.price * line.quantity, 0)
+    const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0)
+    // diantar: ongkos per seller (tiap seller mengantar pesanannya sendiri); ambil sendiri: gratis
+    const sellerCount = new Set(lines.map((line) => line.sellerId)).size
+    const shippingFee = delivery.method === "DELIVERY" ? DELIVERY_FEE_PER_SELLER * sellerCount : 0
+    const total = subtotal + shippingFee
 
     // jumlah per produk (variasi berbeda dari produk yang sama memakai stok yang sama)
     const needed = new Map()
@@ -62,7 +86,17 @@ router.post("/", async (req, res) => {
             }
         }
         return tx.order.create({
-            data: { userId: req.user.id, total, items: { create: lines } },
+            data: {
+                userId: req.user.id,
+                total,
+                shippingFee,
+                deliveryMethod: delivery.method,
+                recipientName: delivery.recipientName,
+                phone: delivery.phone,
+                address: delivery.method === "DELIVERY" ? delivery.address : null,
+                note: delivery.note,
+                items: { create: lines },
+            },
             include: withItems,
         })
     })

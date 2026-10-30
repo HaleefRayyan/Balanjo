@@ -3,10 +3,22 @@ import { z } from "zod"
 import { prisma } from "../db.js"
 import { PRODUCT_CATEGORIES } from "../constants.js"
 import { notFound, parse, parseId } from "../utils/http.js"
-import { serializeProduct } from "../utils/serialize.js"
+import { serializeProduct, serializeReview } from "../utils/serialize.js"
 
 const router = Router()
 const withSeller = { seller: { select: { name: true } } }
+
+// { productId: { average, count } } dari tabel ulasan, untuk produk yang sedang ditampilkan
+const ratingsFor = async (productIds) => {
+    if (productIds.length === 0) return new Map()
+    const rows = await prisma.review.groupBy({
+        by: ["productId"],
+        where: { productId: { in: productIds } },
+        _avg: { rating: true },
+        _count: { _all: true },
+    })
+    return new Map(rows.map((row) => [row.productId, { average: Math.round(row._avg.rating * 10) / 10, count: row._count._all }]))
+}
 
 // ?q=&category=&page=&pageSize=  atau  ?ids=1,2,3 (untuk keranjang)
 router.get("/", async (req, res) => {
@@ -39,13 +51,29 @@ router.get("/", async (req, res) => {
             take: query.ids ? undefined : query.pageSize,
         }),
     ])
-    res.json({ products: products.map(serializeProduct), total, page: query.page, pageSize: query.pageSize })
+    const ratings = await ratingsFor(products.map((product) => product.id))
+    res.json({
+        products: products.map((product) => serializeProduct(product, ratings.get(product.id))),
+        total, page: query.page, pageSize: query.pageSize,
+    })
 })
 
 router.get("/:id", async (req, res) => {
     const product = await prisma.product.findUnique({ where: { id: parseId(req.params.id) }, include: withSeller })
     if (!product) throw notFound("Produk")
-    res.json({ product: serializeProduct(product) })
+    const ratings = await ratingsFor([product.id])
+    res.json({ product: serializeProduct(product, ratings.get(product.id)) })
+})
+
+// Ulasan produk, terbaru dulu
+router.get("/:id/reviews", async (req, res) => {
+    const reviews = await prisma.review.findMany({
+        where: { productId: parseId(req.params.id) },
+        include: { user: { select: { name: true, avatarUrl: true } }, orderItem: { select: { variant: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+    })
+    res.json({ reviews: reviews.map(serializeReview) })
 })
 
 export default router

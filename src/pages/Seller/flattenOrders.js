@@ -7,6 +7,7 @@ const flattenOrders = (orders) =>
         orderId: order.orderId,
         createdAt: order.createdAt,
         buyer: order.buyer,
+        delivery: order.delivery,
     })))
 
 export default flattenOrders
