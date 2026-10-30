@@ -14,6 +14,11 @@ if (process.env.VERCEL && !process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error("BLOB_READ_WRITE_TOKEN belum diisi. Hubungkan Vercel Blob ke project ini (Storage > Blob).")
 }
 
+// Pembayaran wajib aktif di Vercel; lokal tanpa kunci Midtrans pesanan langsung dianggap dibayar
+if (process.env.VERCEL && !process.env.MIDTRANS_SERVER_KEY) {
+    throw new Error("MIDTRANS_SERVER_KEY belum diisi (Vercel > Settings > Environment Variables).")
+}
+
 export const config = {
     isProduction,
     port: Number(process.env.PORT) || 3000,
@@ -22,4 +27,11 @@ export const config = {
     uploadDir: path.join(rootDir, "uploads"),
     // build frontend (npm run build di root) yang ikut dilayani server di production
     clientDistDir: path.resolve(rootDir, "..", "dist"),
+    midtrans: {
+        serverKey: process.env.MIDTRANS_SERVER_KEY || "",
+        clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
+        isProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
+    },
+    // potongan platform per penjualan (persen), disimpan per item saat checkout
+    platformFeePercent: Math.min(100, Math.max(0, Number(process.env.PLATFORM_FEE_PERCENT ?? 5) || 0)),
 }

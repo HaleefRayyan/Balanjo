@@ -19,6 +19,7 @@ import SellerDashboard from "../pages/Seller/SellerDashboard";
 import SellerProducts from "../pages/Seller/SellerProducts";
 import SellerOrders from "../pages/Seller/SellerOrders";
 import SellerBanners from "../pages/Seller/SellerBanners";
+import SellerEarnings from "../pages/Seller/SellerEarnings";
 import SellerProductForm from "../pages/SellerProductForm";
 import ProfileLayout from "../layouts/ProfileLayout";
 import ProfileAccount from "../pages/Profile/ProfileAccount";
@@ -41,6 +42,7 @@ import Forums from "../pages/admin/Forums";
 import Banners from "../pages/admin/Banners";
 import BannerRequests from "../pages/admin/BannerRequests";
 import ChangePassword from "../pages/admin/ChangePassword";
+import Payouts from "../pages/admin/Payouts";
 
 const routes = [
     {
@@ -102,6 +104,7 @@ const routes = [
                     { path: "products/new", element: <SellerProductForm /> },
                     { path: "products/:id/edit", element: <SellerProductForm /> },
                     { path: "orders", element: <SellerOrders /> },
+                    { path: "earnings", element: <SellerEarnings /> },
                     { path: "banners", element: <SellerBanners /> },
                 ],
             },
@@ -137,6 +140,7 @@ const routes = [
                     { path: "forums", element: <Forums /> },
                     { path: "e-commerce", element: <Banners /> },
                     { path: "e-commerce/requests", element: <BannerRequests /> },
+                    { path: "payouts", element: <Payouts /> },
                     { path: "password", element: <ChangePassword /> },
                 ],
             },

@@ -21,3 +21,27 @@ export const useDeleteUser = () => {
         onSuccess: () => queryClient.invalidateQueries(),
     })
 }
+
+// ---------- Payout seller ----------
+
+export const useAdminPayouts = (status) =>
+    useQuery({
+        queryKey: ["admin", "payouts", status ?? "all"],
+        queryFn: () => api(`/admin/payouts${status ? `?status=${status}` : ""}`).then((data) => data.payouts),
+    })
+
+export const usePayoutSellerSummary = (id) =>
+    useQuery({
+        queryKey: ["admin", "payout-summary", id],
+        queryFn: () => api(`/admin/payouts/${id}/seller-summary`).then((data) => data.summary),
+        enabled: Boolean(id),
+    })
+
+// { id, status: "PAID" | "REJECTED", note }
+export const useProcessPayout = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, status, note }) => api(`/admin/payouts/${id}`, { method: "PATCH", body: { status, note } }).then((data) => data.payout),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+    })
+}

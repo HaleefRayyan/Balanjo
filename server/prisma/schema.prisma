@@ -14,26 +14,32 @@ datasource db {
 }
 
 model User {
-  id             Int                  @id @default(autoincrement())
-  name           String // nama tampilan (display name)
-  firstName      String?
-  lastName       String?
-  username       String               @unique
-  email          String               @unique
-  passwordHash   String
-  role           String               @default("USER") // USER | ADMIN
-  avatarUrl      String? // foto profil (upload), null = pakai inisial nama
-  createdAt      DateTime             @default(now())
-  blogs          Blog[]
-  forumPosts     ForumPost[]
-  comments       Comment[]
-  products       Product[]
-  orders         Order[]
-  sales          OrderItem[] // item pesanan untuk produk yang dia jual
-  bannerRequests BannerRequest[]
-  resetTokens    PasswordResetToken[]
-  reviews        Review[]
-  cartItems      CartItem[]
+  id                  Int                  @id @default(autoincrement())
+  name                String // nama tampilan (display name)
+  firstName           String?
+  lastName            String?
+  username            String               @unique
+  email               String               @unique
+  passwordHash        String
+  role                String               @default("USER") // USER | ADMIN
+  avatarUrl           String? // foto profil (upload), null = pakai inisial nama
+  createdAt           DateTime             @default(now())
+  blogs               Blog[]
+  forumPosts          ForumPost[]
+  comments            Comment[]
+  products            Product[]
+  orders              Order[]
+  sales               OrderItem[] // item pesanan untuk produk yang dia jual
+  bannerRequests      BannerRequest[]
+  resetTokens         PasswordResetToken[]
+  reviews             Review[]
+  cartItems           CartItem[]
+  // rekening / e-wallet tujuan payout (diisi seller di Seller Centre)
+  payoutMethod        String? // mis. BCA, BRI, GoPay, DANA
+  payoutAccountNumber String?
+  payoutAccountName   String?
+  payouts             Payout[]             @relation("SellerPayouts")
+  processedPayouts    Payout[]             @relation("ProcessedPayouts")
 }
 
 model Blog {
@@ -96,35 +102,43 @@ model Product {
 }
 
 model Order {
-  id             Int         @id @default(autoincrement())
-  userId         Int
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  total          Int // subtotal produk + ongkos antar
-  shippingFee    Int         @default(0)
+  id               Int         @id @default(autoincrement())
+  userId           Int
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total            Int // subtotal produk + ongkos antar
+  shippingFee      Int         @default(0)
   // pengiriman (diisi saat checkout)
-  deliveryMethod String      @default("PICKUP") // PICKUP (ambil di kampus) | DELIVERY (antar di area kampus)
-  recipientName  String      @default("")
-  phone          String      @default("")
-  address        String? // titik temu / alamat, wajib untuk DELIVERY
-  note           String?
-  items          OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
-  createdAt      DateTime    @default(now())
+  deliveryMethod   String      @default("PICKUP") // PICKUP (ambil di kampus) | DELIVERY (antar di area kampus)
+  recipientName    String      @default("")
+  phone            String      @default("")
+  address          String? // titik temu / alamat, wajib untuk DELIVERY
+  note             String?
+  // pembayaran (Midtrans Snap). Pesanan lama / tanpa Midtrans dianggap sudah dibayar.
+  paymentStatus    String      @default("PAID") // UNPAID | PAID | EXPIRED | FAILED | CANCELLED
+  paymentRef       String?     @unique // order_id di Midtrans (unik per percobaan)
+  paymentToken     String? // token Snap, dipakai ulang selama belum kedaluwarsa
+  paymentType      String? // mis. qris, gopay, bank_transfer
+  paymentExpiresAt DateTime?
+  paidAt           DateTime?
+  items            OrderItem[] // status ada per item, karena satu pesanan bisa berisi produk dari beberapa seller
+  createdAt        DateTime    @default(now())
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId Int?
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  sellerId  Int? // salinan seller saat dibeli: penjualan tetap terlihat walau produknya dihapus
-  seller    User?    @relation(fields: [sellerId], references: [id], onDelete: SetNull)
-  name      String // salinan nama & harga saat dibeli, supaya riwayat tidak berubah
-  price     Int
-  variant   String?
-  quantity  Int
-  status    String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
-  review    Review?
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sellerId    Int? // salinan seller saat dibeli: penjualan tetap terlihat walau produknya dihapus
+  seller      User?    @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  name        String // salinan nama & harga saat dibeli, supaya riwayat tidak berubah
+  price       Int
+  variant     String?
+  quantity    Int
+  status      String   @default("PENDING") // PENDING | PROCESSING | SHIPPED | DONE | CANCELLED
+  platformFee Int      @default(0) // potongan platform (dihitung saat checkout dari PLATFORM_FEE_PERCENT)
+  review      Review?
 
   @@index([sellerId])
 }
@@ -189,4 +203,26 @@ model PasswordResetToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
+}
+
+// Penarikan saldo seller. Uang ditransfer manual oleh admin, lalu ditandai PAID.
+// Saldo = penghasilan item Selesai (dibayar online) - payout yang belum ditolak.
+model Payout {
+  id            Int       @id @default(autoincrement())
+  sellerId      Int
+  seller        User      @relation("SellerPayouts", fields: [sellerId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        String    @default("PENDING") // PENDING | PAID | REJECTED
+  // salinan rekening saat diajukan
+  method        String
+  accountNumber String
+  accountName   String
+  adminNote     String? // mis. nomor referensi transfer / alasan ditolak
+  processedById Int?
+  processedBy   User?     @relation("ProcessedPayouts", fields: [processedById], references: [id], onDelete: SetNull)
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([sellerId])
+  @@index([status])
 }

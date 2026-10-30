@@ -71,3 +71,10 @@ export const CameraIcon = ({ className = "h-4 w-4" }) => (
         <path fillRule="evenodd" d="M9.2 3.5a1.5 1.5 0 0 0-1.3.75L7 6H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-2l-.9-1.75a1.5 1.5 0 0 0-1.3-.75H9.2ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" clipRule="evenodd" />
     </svg>
 )
+
+export const WalletIcon = ({ className = "h-6 w-6" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M4.5 4A2.5 2.5 0 0 0 2 6.5v11A2.5 2.5 0 0 0 4.5 20h15a2.5 2.5 0 0 0 2.5-2.5V16h-4a4 4 0 0 1 0-8h4V6.5A2.5 2.5 0 0 0 19.5 4h-15Z" />
+        <path fillRule="evenodd" d="M18 10a2 2 0 1 0 0 4h4v-4h-4Zm0 2.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
+    </svg>
+)

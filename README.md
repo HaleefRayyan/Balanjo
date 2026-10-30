@@ -72,9 +72,20 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
   - **Dashboard:** total revenue, total orders, and recent orders.
   - **Produk:** your products with stock and units sold; add, edit and delete them.
   - **Pesanan:** incoming orders, one row per ordered product. View the details, change the status (Menunggu konfirmasi → Diproses → Pengiriman → Selesai), or cancel before shipping.
+  - **Penghasilan:** earnings from online-paid sales, the bank / e-wallet account for payouts, withdrawal requests and their history (see Payouts below).
   - **Banner Promosi:** request a promo banner. Banners approved by an admin appear in the Get Started slider.
 - Each order item has its own status, because one order can contain products from several sellers.
 - **Checkout** asks for delivery details: pick up on campus (free) or delivery within the campus area (Rp5.000 per seller in the order), plus recipient name, phone/WhatsApp number, meeting point (delivery only) and a note. Sellers see these in the order details, with a **Chat WhatsApp** link to the buyer.
+- **Payment (Midtrans Snap):** after checkout the Midtrans payment popup opens (QRIS, e-wallets, virtual accounts, cards, etc.). The buyer has 60 minutes to pay; stock is held meanwhile. Unpaid orders can be paid later from Riwayat Pesanan, or cancelled. When the deadline passes, the order expires and its stock goes back.
+  - Sellers only see an order (and count its revenue) once it is paid.
+  - An order paid online can't be cancelled by the buyer; they contact the seller (refunds are handled outside the app for now).
+  - Midtrans reports payments to `/api/payments/notify` (signature checked, then confirmed with the Midtrans status API). After the popup closes, the site also asks Midtrans directly, so payments work on localhost too.
+  - **Without Midtrans keys** (local development), orders count as paid right away, as before. Sandbox test card: `4811 1111 1111 1114`, any future expiry, CVV `123`, OTP `112`.
+- **Payouts:** Balanjo collects the money through Midtrans and pays sellers out.
+  - A seller earns price × quantity minus the platform fee (`PLATFORM_FEE_PERCENT`, default 5%), plus the full Rp5.000 delivery fee for orders they deliver. The fee is stored on each order item at checkout, so changing the rate later doesn't change past sales.
+  - Earnings become withdrawable when the item is marked **Selesai**; paid but unfinished items show as "Dana tertahan". Only orders paid through Midtrans count.
+  - The seller saves a bank / e-wallet account and requests a withdrawal (minimum Rp10.000, one open request at a time).
+  - An admin opens **Payout Seller** in the admin panel, transfers the money manually, then marks the request as transferred (with a reference note) or rejects it with a reason. A rejected amount goes back to the seller's balance.
 - **Cart:** guests keep their cart in the browser. After login it is stored on your account, so it is the same on every device; anything added as a guest is merged in.
 - **Reviews:** shown on the product page (with the average rating) and as a rating line on product cards. Reviewers and admins can delete a review.
 - Products have a **stock** count. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
@@ -152,11 +163,16 @@ The website and the API deploy together as one Vercel project, on one address, s
    | `DATABASE_URL` | Neon `main` pooled string + `&pgbouncer=true&connect_timeout=15` |
    | `DIRECT_URL` | Neon `main` direct string + `&connect_timeout=15` |
    | `JWT_SECRET` | A long random string. Generate one with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-   | `CLIENT_URL` | The site address, e.g. `https://balanjo.vercel.app` (used in password-reset links) |
+   | `CLIENT_URL` | The site address, e.g. `https://balanjo.vercel.app` (used in password-reset links and to return from the payment page) |
+   | `MIDTRANS_SERVER_KEY` | Midtrans dashboard → Settings → Access Keys (required: the API refuses to start on Vercel without it) |
+   | `MIDTRANS_CLIENT_KEY` | Same page |
+   | `MIDTRANS_IS_PRODUCTION` | `false` for sandbox, `true` with production keys |
+   | `PLATFORM_FEE_PERCENT` | Platform fee taken from each sale for seller payouts, e.g. `5` |
 
    For **Preview** deployments (other branches and pull requests), use a separate Neon branch such as `preview`. Preview builds run migrations, so they must never point at `main`.
 6. **Deploy** (Deployments → Redeploy, or push to the production branch).
-7. **Create the first admin.** The production database starts empty, with no sample data. In PowerShell, from the repo root:
+7. **Midtrans notifications:** in the Midtrans dashboard → Settings → Payment → **Notification URL**, enter `https://<your site>/api/payments/notify`. Leave the Finish/Unfinish/Error redirect URLs empty (the site sets them).
+8. **Create the first admin.** The production database starts empty, with no sample data. In PowerShell, from the repo root:
    ```powershell
    $env:DATABASE_URL="<main pooled string>"; $env:DIRECT_URL="<main direct string>"
    npm --prefix server run create-admin -- --email admin@yourdomain.com --name "Admin Balanjo"

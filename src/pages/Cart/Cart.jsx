@@ -6,9 +6,10 @@ import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { TrashIcon } from "../../components/ui/icons"
 import { useProducts } from "../../api/products"
 import { useCreateOrder } from "../../api/orders"
+import { usePayOrder } from "../../api/payments"
 import { useAuth } from "../../context/auth"
 import { useCart } from "../../context/cart"
-import { formatRupiah } from "../../utils/format"
+import { formatDateTime, formatRupiah } from "../../utils/format"
 import { DELIVERY_FEE_PER_SELLER } from "../../constants/shop"
 import CheckoutForm from "./CheckoutForm"
 
@@ -20,6 +21,7 @@ const Cart = () => {
     const [order, setOrder] = useState(null)
     const [deliveryMethod, setDeliveryMethod] = useState("PICKUP")
     const createOrder = useCreateOrder()
+    const payOrder = usePayOrder()
 
     // detail produk (nama, harga, foto) diambil dari API berdasarkan id di keranjang
     const ids = [...new Set(items.map((item) => item.productId))].sort((a, b) => a - b)
@@ -47,16 +49,49 @@ const Cart = () => {
     const handleCheckout = (delivery) => {
         createOrder.mutate(
             { items: items.map(({ productId, variant, quantity }) => ({ productId, variant, quantity })), delivery },
-            { onSuccess: (created) => { clear(); setOrder(created) } },
+            {
+                onSuccess: (created) => {
+                    clear()
+                    setOrder(created)
+                    if (created.payment.status === "UNPAID") handlePay(created)
+                },
+            },
         )
     }
 
+    // popup Midtrans; setelah ditutup status pesanan diambil ulang dari server
+    const handlePay = (target) => payOrder.mutate(target.id, { onSuccess: ({ order: updated }) => setOrder(updated) })
+
     let content
     if (order) {
+        const handover = order.delivery.method === "DELIVERY" ? "pengantaran" : "pengambilan"
+        const status = order.payment.status
         content = (
             <div className="rounded-lg bg-white px-6 py-16 text-center">
-                <p className="text-xl font-semibold text-[#2d2d2d]">Pesanan #{order.id} berhasil dibuat!</p>
-                <p className="mt-2 text-abu">Total {formatRupiah(order.total)}. Seller akan menghubungi kamu di {order.delivery.phone} untuk konfirmasi pembayaran dan {order.delivery.method === "DELIVERY" ? "pengantaran" : "pengambilan"}.</p>
+                {status === "PAID" ? (
+                    <>
+                        <p className="text-xl font-semibold text-[#2d2d2d]">Pesanan #{order.id} berhasil dibuat!</p>
+                        <p className="mt-2 text-abu">
+                            {order.payment.online ? "Pembayaran diterima. " : ""}Total {formatRupiah(order.total)}. Seller akan menghubungi kamu di {order.delivery.phone} untuk {handover}.
+                        </p>
+                    </>
+                ) : status === "UNPAID" ? (
+                    <>
+                        <p className="text-xl font-semibold text-[#2d2d2d]">Pesanan #{order.id} menunggu pembayaran</p>
+                        <p className="mt-2 text-abu">
+                            Total {formatRupiah(order.total)}. Bayar sebelum {formatDateTime(new Date(order.payment.expiresAt))}, setelah itu pesanan otomatis dibatalkan.
+                        </p>
+                        {payOrder.isError && <p role="alert" className="mt-3 text-sm text-red-600">{payOrder.error.message}</p>}
+                        <Button onClick={() => handlePay(order)} disabled={payOrder.isPending} className="mt-6 h-11 rounded-md px-8 text-sm disabled:cursor-wait disabled:opacity-60">
+                            {payOrder.isPending ? "Membuka pembayaran..." : "Bayar sekarang"}
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <p className="text-xl font-semibold text-[#2d2d2d]">Pembayaran pesanan #{order.id} tidak berhasil</p>
+                        <p className="mt-2 text-abu">Pesanan dibatalkan dan stok dikembalikan. Silakan pesan ulang.</p>
+                    </>
+                )}
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                     <Link to="/profile/orders" className="inline-flex rounded-md bg-button px-6 py-3 text-white">Lihat pesanan saya</Link>
                     <Link to="/e-commerce" className="inline-flex rounded-md border border-button px-6 py-3 text-button">Belanja lagi</Link>
