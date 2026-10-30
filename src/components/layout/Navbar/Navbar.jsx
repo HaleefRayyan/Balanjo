@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../../../context/auth"
 import { useCart } from "../../../context/cart"
+import { useSellerStats } from "../../../api/seller"
+import NotificationBell from "../NotificationBell"
 
 const navItems = [
     ["Home", "/"],
@@ -28,6 +30,7 @@ const Navbar = ({ overlay = false }) => {
     const location = useLocation()
     const navigate = useNavigate()
     const { user, loading: authLoading, logout } = useAuth()
+    const { data: sellerStats } = useSellerStats({ enabled: Boolean(user) }) // badge pesanan baru
     const { count: cartCount } = useCart()
 
     const isTransparent = overlay && !isScrolled
@@ -122,6 +125,7 @@ const Navbar = ({ overlay = false }) => {
                             {cartCount > 99 ? "99+" : cartCount}
                         </span>
                     </Link>
+                    <NotificationBell className={navbarTransparent ? "text-white" : "text-black"} />
                     {authLoading ? (
                         <div className="h-15 w-40" aria-hidden="true" />
                     ) : user ? (
@@ -142,7 +146,10 @@ const Navbar = ({ overlay = false }) => {
                                 <div className="absolute right-0 top-full mt-3 w-44 rounded-lg bg-white py-2 shadow-lg">
                                     <Link to="/profile" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Profil Saya</Link>
                                     <Link to="/profile/orders" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Riwayat Pesanan</Link>
-                                    <Link to="/seller" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Seller Centre</Link>
+                                    <Link to="/seller" className="block px-4 py-2 text-[16px] text-black hover:bg-background">
+                                        Seller Centre
+                                        {sellerStats?.toProcess > 0 && <span className="ml-2 rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{sellerStats.toProcess}</span>}
+                                    </Link>
                                     {user.role === "admin" && (
                                         <Link to="/admin" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Admin Panel</Link>
                                     )}
@@ -163,6 +170,9 @@ const Navbar = ({ overlay = false }) => {
                             <Button onClick={() => navigate("/register")} className="w-29.75 h-12.25">Sign up</Button>
                         </div>
                     )}
+                </div>
+                <div className="ml-auto mr-5 lg:hidden">
+                    <NotificationBell className={navbarTransparent ? "text-white" : "text-black"} />
                 </div>
                 <button
                     type="button"

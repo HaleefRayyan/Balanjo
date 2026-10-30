@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom"
 import logoCoklat from "../../assets/navbar/logoCoklat.svg"
-import { DashboardIcon, FolderGearIcon, UserIcon, WalletIcon } from "../ui/icons"
+import { CartIcon, DashboardIcon, FolderGearIcon, UserIcon, WalletIcon } from "../ui/icons"
 
 const menu = [
     { label: "Dashboard", to: "/admin", icon: DashboardIcon, end: true },
@@ -11,8 +11,12 @@ const menu = [
         label: "Kelola E-Commerce",
         to: "/admin/e-commerce",
         icon: FolderGearIcon,
-        children: [{ label: "Requested Banner", to: "/admin/e-commerce/requests" }],
+        children: [
+            { label: "Requested Banner", to: "/admin/e-commerce/requests" },
+            { label: "Ulasan", to: "/admin/e-commerce/reviews" },
+        ],
     },
+    { label: "Pesanan", to: "/admin/orders", icon: CartIcon, children: [{ label: "Refund", to: "/admin/orders/refunds" }] },
     { label: "Payout Seller", to: "/admin/payouts", icon: WalletIcon },
 ]
 

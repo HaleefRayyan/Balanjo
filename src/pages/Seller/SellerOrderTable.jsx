@@ -86,7 +86,7 @@ const SellerOrderTable = ({ rows, emptyText = "Belum ada pesanan masuk." }) => {
 
     // ikon hapus = batalkan pesanan (hanya sebelum dikirim); stok kembali otomatis
     const handleCancel = (row) => {
-        if (window.confirm(`Batalkan pesanan ${formatCode(row.orderId)} (${row.name})? Stok akan dikembalikan.`)) {
+        if (window.confirm(`Batalkan pesanan ${formatCode(row.orderId)} (${row.name})? Stok dikembalikan dan dana pembeli dikembalikan oleh admin.`)) {
             updateStatus.mutate({ id: row.id, status: "CANCELLED" }, { onError: (error) => window.alert(error.message) })
         }
     }

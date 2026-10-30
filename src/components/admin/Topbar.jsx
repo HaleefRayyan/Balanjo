@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { ChevronDownIcon, MenuIcon } from "../ui/icons"
+import NotificationBell from "../layout/NotificationBell"
 
 const Topbar = ({ onMenuClick }) => {
     const location = useLocation()
@@ -13,6 +14,8 @@ const Topbar = ({ onMenuClick }) => {
                 <MenuIcon />
             </button>
 
+            <div className="flex items-center gap-8">
+            <NotificationBell />
             <div className="relative">
                 <button
                     type="button"
@@ -33,6 +36,7 @@ const Topbar = ({ onMenuClick }) => {
                         </Link>
                     </div>
                 )}
+            </div>
             </div>
         </header>
     )

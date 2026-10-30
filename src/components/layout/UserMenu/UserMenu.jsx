@@ -3,10 +3,12 @@ import { Link, useLocation } from "react-router-dom"
 import Avatar from "../../ui/Avatar"
 import { ChevronDownIcon } from "../../ui/icons"
 import { useAuth } from "../../../context/auth"
+import { useSellerStats } from "../../../api/seller"
 
 // Nama + foto + dropdown di topbar Seller Centre & Profil (desain: "Budi (B) ⌄")
 const UserMenu = () => {
     const { user, logout } = useAuth()
+    const { data: stats } = useSellerStats({ enabled: Boolean(user) })
     const location = useLocation()
     const [menu, setMenu] = useState({ path: "", open: false })
     const isOpen = menu.open && menu.path === location.pathname
@@ -31,7 +33,10 @@ const UserMenu = () => {
                     <Link to="/" className={itemClass}>Kembali ke Balanjo</Link>
                     <Link to="/profile" className={itemClass}>Profil Saya</Link>
                     <Link to="/profile/orders" className={itemClass}>Riwayat Pesanan</Link>
-                    <Link to="/seller" className={itemClass}>Seller Centre</Link>
+                    <Link to="/seller" className={itemClass}>
+                        Seller Centre
+                        {stats?.toProcess > 0 && <span className="ml-2 rounded-full bg-red-600 px-1.5 text-xs font-semibold text-white">{stats.toProcess}</span>}
+                    </Link>
                     {user.role === "admin" && <Link to="/admin" className={itemClass}>Admin Panel</Link>}
                     <button type="button" onClick={() => logout("/")} className={`${itemClass} cursor-pointer`}>Logout</button>
                 </div>

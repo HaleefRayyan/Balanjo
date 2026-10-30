@@ -26,3 +26,15 @@ export const formatDateTime = (date = new Date()) => {
 
 // 12 -> "#000012" (kode pesanan / produk seperti di desain)
 export const formatCode = (id) => `#${String(id).padStart(6, "0")}`
+
+// "baru saja", "5 menit lalu", "3 jam lalu", "2 hari lalu", lalu tanggal
+export const formatRelative = (date, now = new Date()) => {
+    const minutes = Math.floor((now - date) / 60_000)
+    if (minutes < 1) return "baru saja"
+    if (minutes < 60) return `${minutes} menit lalu`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours} jam lalu`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days} hari lalu`
+    return formatDateTime(date)
+}

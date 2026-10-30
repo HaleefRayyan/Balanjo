@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "./client"
+import { api, toQuery } from "./client"
 
 export const useAdminStats = () =>
     useQuery({
@@ -45,3 +45,35 @@ export const useProcessPayout = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
     })
 }
+
+// ---------- Pesanan & refund ----------
+
+export const useAdminOrders = ({ payment, page }) =>
+    useQuery({
+        queryKey: ["admin", "orders", payment ?? "all", page],
+        queryFn: () => api(`/admin/orders${toQuery({ payment, page })}`),
+        placeholderData: (previous) => previous,
+    })
+
+export const useAdminRefunds = (status) =>
+    useQuery({
+        queryKey: ["admin", "refunds", status ?? "all"],
+        queryFn: () => api(`/admin/refunds${toQuery({ status })}`).then((data) => data.refunds),
+    })
+
+export const useMarkRefunded = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: ({ id, note }) => api(`/admin/refunds/${id}`, { method: "PATCH", body: { note } }).then((data) => data.refund),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
+    })
+}
+
+// ---------- Ulasan (moderasi; hapus memakai useDeleteReview dari api/reviews) ----------
+
+export const useAdminReviews = ({ rating, page }) =>
+    useQuery({
+        queryKey: ["admin", "reviews", rating ?? "all", page],
+        queryFn: () => api(`/admin/reviews${toQuery({ rating, page })}`),
+        placeholderData: (previous) => previous,
+    })

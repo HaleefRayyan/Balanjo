@@ -5,6 +5,7 @@ import Blog from "../pages/Blog";
 import DetailBlog from "../pages/DetailBlog";
 import DetailCategory from "../pages/DetailCategory";
 import DetailProduct from "../pages/DetailProduct";
+import SellerStore from "../pages/SellerStore";
 import ECommerce from "../pages/ECommerce";
 import Forum from "../pages/Forum";
 import GetStarted from "../pages/GetStarted";
@@ -43,6 +44,9 @@ import Banners from "../pages/admin/Banners";
 import BannerRequests from "../pages/admin/BannerRequests";
 import ChangePassword from "../pages/admin/ChangePassword";
 import Payouts from "../pages/admin/Payouts";
+import AdminOrders from "../pages/admin/Orders";
+import Refunds from "../pages/admin/Refunds";
+import AdminReviews from "../pages/admin/Reviews";
 
 const routes = [
     {
@@ -84,6 +88,7 @@ const routes = [
                     { index: true, element: <ECommerce /> },
                     { path: "category/:category", element: <DetailCategory /> },
                     { path: "product/:id", element: <DetailProduct /> },
+                    { path: "seller/:id", element: <SellerStore /> },
                 ],
             },
             { path: "cart", element: <Cart /> },
@@ -140,6 +145,9 @@ const routes = [
                     { path: "forums", element: <Forums /> },
                     { path: "e-commerce", element: <Banners /> },
                     { path: "e-commerce/requests", element: <BannerRequests /> },
+                    { path: "e-commerce/reviews", element: <AdminReviews /> },
+                    { path: "orders", element: <AdminOrders /> },
+                    { path: "orders/refunds", element: <Refunds /> },
                     { path: "payouts", element: <Payouts /> },
                     { path: "password", element: <ChangePassword /> },
                 ],

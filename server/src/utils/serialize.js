@@ -9,6 +9,7 @@ export const serializeUser = (user) => ({
     email: user.email,
     role: user.role === "ADMIN" ? "admin" : "user",
     avatar: user.avatarUrl ?? null,
+    emailNotifications: user.emailNotifications ?? true,
     joinedAt: user.createdAt,
 })
 
@@ -47,6 +48,13 @@ export const serializeForumPost = (post) => ({
     ...(post.comments && { comments: post.comments.map(serializeComment) }),
 })
 
+// Relasi yang dibutuhkan serializeProduct (seller, variasi + stoknya, foto)
+export const productInclude = {
+    seller: { select: { name: true } },
+    variants: { orderBy: { position: "asc" } },
+    photos: { orderBy: { position: "asc" } },
+}
+
 // rating: { average, count } dari ulasan (diisi route produk)
 export const serializeProduct = (product, rating = { average: null, count: 0 }) => ({
     id: product.id,
@@ -55,7 +63,9 @@ export const serializeProduct = (product, rating = { average: null, count: 0 }) 
     price: product.price,
     description: product.description,
     photo: product.photoUrl,
-    variants: JSON.parse(product.variants),
+    variants: (product.variants ?? []).map((variant) => variant.name),
+    variantStock: Object.fromEntries((product.variants ?? []).map((variant) => [variant.name, variant.stock])),
+    photos: product.photos?.length ? product.photos.map((photo) => photo.url) : [product.photoUrl],
     stock: product.stock,
     rating,
     seller: product.seller?.name ?? null,
@@ -88,6 +98,7 @@ export const serializeOrderItem = (item) => ({
     photo: item.product?.photoUrl ?? null, // null kalau produknya sudah dihapus
     seller: item.seller?.name ?? null,
     review: item.review ? { id: item.review.id, rating: item.review.rating } : null,
+    platformFee: item.platformFee,
 })
 
 export const serializeDelivery = (order) => ({
@@ -113,6 +124,19 @@ export const serializePayout = (payout) => ({
     seller: payout.seller ? { id: payout.seller.id, name: payout.seller.name, email: payout.seller.email } : undefined,
     processedAt: payout.processedAt,
     createdAt: payout.createdAt,
+})
+
+export const serializeRefund = (refund) => ({
+    id: refund.id,
+    orderId: refund.orderId,
+    orderItemId: refund.orderItemId,
+    amount: refund.amount,
+    reason: refund.reason,
+    description: refund.description,
+    status: refund.status,
+    adminNote: refund.adminNote,
+    processedAt: refund.processedAt,
+    createdAt: refund.createdAt,
 })
 
 // online: dibayar / dibuat lewat Midtrans (false untuk pesanan lama & mode development)
@@ -142,6 +166,7 @@ export const serializeOrder = (order) => ({
     shippingFee: order.shippingFee,
     delivery: serializeDelivery(order),
     payment: serializePayment(order),
+    refunds: order.refunds?.map(serializeRefund) ?? [],
     createdAt: order.createdAt,
     items: order.items?.map(serializeOrderItem),
 })

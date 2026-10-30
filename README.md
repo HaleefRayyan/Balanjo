@@ -70,7 +70,7 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 
 - Any logged-in user can sell. **Seller Centre** (`/seller`, in the user menu) is a panel with:
   - **Dashboard:** total revenue, total orders, and recent orders.
-  - **Produk:** your products with stock and units sold; add, edit and delete them.
+  - **Produk:** your products with stock (per variant) and units sold; add, edit and delete them. A product has up to **5 photos** (the first is the cover; photos are shrunk in the browser before upload) and optional **variants, each with its own stock**. The product's stock is the total of its variants.
   - **Pesanan:** incoming orders, one row per ordered product. View the details, change the status (Menunggu konfirmasi → Diproses → Pengiriman → Selesai), or cancel before shipping.
   - **Penghasilan:** earnings from online-paid sales, the bank / e-wallet account for payouts, withdrawal requests and their history (see Payouts below).
   - **Banner Promosi:** request a promo banner. Banners approved by an admin appear in the Get Started slider.
@@ -78,17 +78,22 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 - **Checkout** asks for delivery details: pick up on campus (free) or delivery within the campus area (Rp5.000 per seller in the order), plus recipient name, phone/WhatsApp number, meeting point (delivery only) and a note. Sellers see these in the order details, with a **Chat WhatsApp** link to the buyer.
 - **Payment (Midtrans Snap):** after checkout the Midtrans payment popup opens (QRIS, e-wallets, virtual accounts, cards, etc.). The buyer has 60 minutes to pay; stock is held meanwhile. Unpaid orders can be paid later from Riwayat Pesanan, or cancelled. When the deadline passes, the order expires and its stock goes back.
   - Sellers only see an order (and count its revenue) once it is paid.
-  - An order paid online can't be cancelled by the buyer; they contact the seller (refunds are handled outside the app for now).
+  - An order paid online can't be cancelled by the buyer; they contact the seller.
   - Midtrans reports payments to `/api/payments/notify` (signature checked, then confirmed with the Midtrans status API). After the popup closes, the site also asks Midtrans directly, so payments work on localhost too.
   - **Without Midtrans keys** (local development), orders count as paid right away, as before. Sandbox test card: `4811 1111 1111 1114`, any future expiry, CVV `123`, OTP `112`.
+- **Refunds:** created automatically when a seller cancels an item from an online-paid order (the item's price, plus the Rp5.000 delivery fee if that seller has nothing left in the order), or when a payment arrives after the order had already expired or been cancelled (the full amount). An admin returns the money manually (Midtrans dashboard → Refund for cards / e-wallets / QRIS, or a bank transfer after contacting the buyer on WhatsApp) and marks it done under **Pesanan → Refund**. Buyers see "Refund diproses" / "Dana dikembalikan" in Riwayat Pesanan.
 - **Payouts:** Balanjo collects the money through Midtrans and pays sellers out.
   - A seller earns price × quantity minus the platform fee (`PLATFORM_FEE_PERCENT`, default 5%), plus the full Rp5.000 delivery fee for orders they deliver. The fee is stored on each order item at checkout, so changing the rate later doesn't change past sales.
   - Earnings become withdrawable when the item is marked **Selesai**; paid but unfinished items show as "Dana tertahan". Only orders paid through Midtrans count.
   - The seller saves a bank / e-wallet account and requests a withdrawal (minimum Rp10.000, one open request at a time).
   - An admin opens **Payout Seller** in the admin panel, transfers the money manually, then marks the request as transferred (with a reference note) or rejects it with a reason. A rejected amount goes back to the seller's balance.
+- **Admin overview:** **Pesanan** lists every order with payment status, items per seller (with the platform fee) and refunds. The dashboard shows online sales (minus refunds), platform income (fees from finished items), and the number of refunds and payouts waiting.
+- **Shopping:** product lists can be sorted (newest, price, rating) and filtered by price range; these settings stay in the URL. Closed orders (expired, cancelled) have **Pesan lagi**, which puts the products back in the cart. Sellers see a red badge on **Pesanan** (and on Seller Centre in the user menu) with the number of paid items still waiting to be processed.
 - **Cart:** guests keep their cart in the browser. After login it is stored on your account, so it is the same on every device; anything added as a guest is merged in.
 - **Reviews:** shown on the product page (with the average rating) and as a rating line on product cards. Reviewers and admins can delete a review.
-- Products have a **stock** count. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
+- Every seller has a public **store page** (`/e-commerce/seller/:id`, linked from "Dijual oleh …" on a product) with their rating, units sold, join date and all their products.
+- Admins moderate reviews under **Kelola E-Commerce → Ulasan** (filter by stars, delete).
+- Products have a **stock** count (per variant when the product has variants). Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
 
 ## Database
 
@@ -105,17 +110,34 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 - Locally, uploaded images go to `server/uploads/`. On Vercel they go to Vercel Blob. Uploads, local data and `.env` are not committed to Git.
 - Neon's free plan pauses the database after a few minutes without traffic, so the first request after a pause takes a moment longer.
 
-## Forgot password
+## Notifications and email
 
-No email service is connected yet. When someone requests a reset, the API prints the reset link in the **API terminal**:
+- A **bell** in the navbar, Seller Centre, profile and admin panel shows notifications with an unread count (checked every minute). Clicking one marks it read and opens the related page.
+- Events:
+  - **Buyer:** payment received, order expired or payment failed, item processing / on its way (or ready for pickup) / finished (with a review prompt) / cancelled by the seller (with the refund amount), refund returned.
+  - **Seller:** new paid order (with delivery address and buyer contact), new review, payout transferred or rejected.
+  - **Admin:** refund waiting, payout request waiting.
+- Each notification is also emailed, unless the user turns it off under **Profil Saya → Akun** ("Kirim notifikasi … ke email saya"). Password-reset emails are always sent.
+
+**Email setup (SMTP).** Set these in `server/.env` locally and in Vercel's environment variables:
+
+| Name | Gmail | Brevo (free, 300/day) |
+|---|---|---|
+| `SMTP_HOST` | `smtp.gmail.com` | `smtp-relay.brevo.com` |
+| `SMTP_PORT` | `465` | `587` |
+| `SMTP_USER` | your Gmail address | the SMTP login shown in Brevo |
+| `SMTP_PASS` | an **app password** (Google Account → Security → 2-Step Verification → App passwords) | the SMTP key from Brevo |
+| `MAIL_FROM` | `Balanjo <your Gmail address>` | `Balanjo <a sender address verified in Brevo>` |
+
+Without `SMTP_HOST`, nothing is sent: each email (including password-reset links) is printed in the **API terminal**, or in Vercel's **Logs** tab:
 
 ```
-[reset password] budi@gmail.com: http://localhost:5173/reset-password?token=...
+[email] ke budi@gmail.com: Reset password
+...
+Buat password baru: http://localhost:5173/reset-password?token=...
 ```
 
-Open that link to set a new password. Each link works once and expires after one hour.
-
-On Vercel, the same line appears in the project's **Logs** tab. Connecting an email service is still on the to-do list.
+Reset links work once and expire after one hour.
 
 ## Project structure
 

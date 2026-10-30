@@ -165,11 +165,16 @@ const main = async () => {
     const products = []
     for (let index = 0; index < 12; index++) {
         const template = templates[index % templates.length]
+        const photoUrl = await copyAsset(template.photo)
+        // stok per variasi (variasi terakhir habis, untuk contoh "Stok habis" per variasi)
+        const variants = template.variants.map((name, position) => ({ name, position, stock: position === template.variants.length - 1 ? 0 : 10 }))
         products.push(await prisma.product.create({
             data: {
                 name: template.name, category: template.category, price: template.price, description: template.description,
-                variants: JSON.stringify(template.variants), photoUrl: await copyAsset(template.photo), stock: 20,
+                photoUrl, stock: variants.reduce((sum, variant) => sum + variant.stock, 0),
                 sellerId: users[sellers[index % sellers.length]].id,
+                variants: { create: variants },
+                photos: { create: [{ url: photoUrl, position: 0 }] },
             },
         }))
     }

@@ -3,21 +3,35 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
-import { ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
+import { DELIVERY_FEE_PER_SELLER, ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
 import { config } from "../config.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
-import { serializeBannerRequest, serializeDelivery, serializeOrderItem, serializePayout, serializePayoutAccount, serializeProduct } from "../utils/serialize.js"
+import { productInclude, serializeBannerRequest, serializeDelivery, serializeOrderItem, serializePayout, serializePayoutAccount, serializeProduct } from "../utils/serialize.js"
 import { sellerEarnings } from "../utils/earnings.js"
-import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
+import { MAX_PHOTOS, removeUpload, uploadImages } from "../utils/uploads.js"
+import { releaseStock } from "../utils/stock.js"
 import { expireOverdueOrders } from "../utils/payments.js"
+import { background } from "../utils/notify.js"
+import * as events from "../utils/events.js"
 
 const router = Router()
 router.use(requireAuth)
 
 // ---------- Produk ----------
 
-// variants dikirim sebagai teks dipisah koma: "Hitam, Coklat"
+// Multipart: name, category, price, description, stock (tanpa variasi),
+// variants = JSON [{ name, stock }] (stok per variasi; total produk = jumlahnya),
+// photoOrder = JSON urutan foto akhir: URL foto lama yang dipertahankan atau "new:<i>" untuk file ke-i di "photos".
+const jsonField = (schema) => z.string().optional().default("[]").transform((value, ctx) => {
+    try {
+        return JSON.parse(value)
+    } catch {
+        ctx.addIssue({ code: "custom", message: "Data form tidak valid." })
+        return z.NEVER
+    }
+}).pipe(schema)
+
 const productSchema = z.object({
     name: z.string().trim().min(1, "Nama produk wajib diisi.").max(100, "Nama produk maksimal 100 karakter."),
     category: z.enum(PRODUCT_CATEGORIES, { error: "Kategori tidak valid." }),
@@ -26,10 +40,43 @@ const productSchema = z.object({
     description: z.string().trim().min(1, "Deskripsi wajib diisi.").max(2000, "Deskripsi maksimal 2000 karakter."),
     stock: z.coerce.number({ error: "Stok harus berupa angka." }).int("Stok harus bilangan bulat.")
         .min(0, "Stok tidak boleh negatif.").max(100_000, "Stok terlalu besar."),
-    variants: z.string().optional().default("").transform((value) =>
-        [...new Set(value.split(",").map((variant) => variant.trim()).filter(Boolean))])
-        .refine((list) => list.length <= 10, "Maksimal 10 variasi.")
-        .refine((list) => list.every((variant) => variant.length <= 30), "Nama variasi maksimal 30 karakter."),
+    variants: jsonField(z.array(z.object({
+        name: z.string().trim().min(1, "Nama variasi wajib diisi.").max(30, "Nama variasi maksimal 30 karakter."),
+        stock: z.number({ error: "Stok variasi harus berupa angka." }).int().min(0, "Stok tidak boleh negatif.").max(100_000, "Stok terlalu besar."),
+    })).max(10, "Maksimal 10 variasi.")
+        .refine((list) => new Set(list.map((variant) => variant.name.toLowerCase())).size === list.length, "Nama variasi tidak boleh sama.")),
+    photoOrder: jsonField(z.array(z.string().max(500)).min(1, "Foto produk wajib diunggah.").max(MAX_PHOTOS, `Maksimal ${MAX_PHOTOS} foto per produk.`)),
+})
+
+// Urutan foto akhir dari photoOrder: foto lama (harus milik produk ini) atau file baru
+const resolvePhotos = (order, uploaded, existing) => order.map((token) => {
+    const match = token.match(/^new:(\d+)$/)
+    const url = match ? uploaded[Number(match[1])]?.url : existing.find((photo) => photo === token)
+    if (!url) throw new HttpError(400, "Foto produk tidak valid. Muat ulang halaman lalu coba lagi.")
+    return url
+})
+
+// Simpan variasi & foto (dalam transaksi). Stok total = jumlah variasi kalau ada.
+const saveDetails = async (tx, productId, data, photos) => {
+    await tx.productVariant.deleteMany({ where: { productId, name: { notIn: data.variants.map((variant) => variant.name) } } })
+    for (const [position, variant] of data.variants.entries()) {
+        await tx.productVariant.upsert({
+            where: { productId_name: { productId, name: variant.name } },
+            create: { productId, name: variant.name, stock: variant.stock, position },
+            update: { stock: variant.stock, position },
+        })
+    }
+    await tx.productPhoto.deleteMany({ where: { productId } })
+    await tx.productPhoto.createMany({ data: photos.map((url, position) => ({ productId, url, position })) })
+}
+
+const productFields = (data, photos) => ({
+    name: data.name,
+    category: data.category,
+    price: data.price,
+    description: data.description,
+    stock: data.variants.length ? data.variants.reduce((sum, variant) => sum + variant.stock, 0) : data.stock,
+    photoUrl: photos[0],
 })
 
 const findOwnProduct = async (req) => {
@@ -47,10 +94,13 @@ router.get("/stats", async (req, res) => {
         where: { sellerId: req.user.id, status: { not: "CANCELLED" }, ...paid },
         select: { orderId: true, price: true, quantity: true },
     })
+    // item dibayar yang belum diproses seller (badge "Pesanan" di Seller Centre)
+    const toProcess = await prisma.orderItem.count({ where: { sellerId: req.user.id, status: "PENDING", ...paid } })
     res.json({
         stats: {
             revenue: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
             orders: new Set(items.map((item) => item.orderId)).size,
+            toProcess,
         },
     })
 })
@@ -60,7 +110,7 @@ router.get("/products", async (req, res) => {
     const [products, sales] = await Promise.all([
         prisma.product.findMany({
             where: { sellerId: req.user.id },
-            include: { seller: { select: { name: true } } },
+            include: productInclude,
             orderBy: { createdAt: "desc" },
         }),
         prisma.orderItem.groupBy({
@@ -73,35 +123,44 @@ router.get("/products", async (req, res) => {
     res.json({ products: products.map((product) => ({ ...serializeProduct(product), sold: sold.get(product.id) ?? 0 })) })
 })
 
-router.post("/products", uploadImage, async (req, res) => {
+// File baru yang tidak dipakai (atau semua, kalau gagal) dihapus lagi dari penyimpanan
+const cleanupUploads = (files, keep = []) => Promise.all((files ?? []).filter((file) => !keep.includes(file.url)).map((file) => removeUpload(file.url)))
+
+router.post("/products", uploadImages, async (req, res) => {
     try {
         const data = parse(productSchema, req.body)
-        if (!req.file) throw new HttpError(400, "Foto produk wajib diunggah.")
-        const product = await prisma.product.create({
-            data: { ...data, variants: JSON.stringify(data.variants), photoUrl: fileUrl(req.file), sellerId: req.user.id },
-            include: { seller: { select: { name: true } } },
+        const photos = resolvePhotos(data.photoOrder, req.files ?? [], [])
+        const product = await prisma.$transaction(async (tx) => {
+            const created = await tx.product.create({ data: { ...productFields(data, photos), sellerId: req.user.id } })
+            await saveDetails(tx, created.id, data, photos)
+            return tx.product.findUnique({ where: { id: created.id }, include: productInclude })
         })
+        await cleanupUploads(req.files, photos)
         res.status(201).json({ product: serializeProduct(product) })
     } catch (error) {
-        if (req.file) await removeUpload(fileUrl(req.file))
+        await cleanupUploads(req.files)
         throw error
     }
 })
 
-// foto opsional saat edit; kalau diganti, foto lama dihapus
-router.put("/products/:id", uploadImage, async (req, res) => {
+// Foto lama yang tidak ada lagi di photoOrder dihapus dari penyimpanan
+router.put("/products/:id", uploadImages, async (req, res) => {
     try {
         const product = await findOwnProduct(req)
         const data = parse(productSchema, req.body)
-        const updated = await prisma.product.update({
-            where: { id: product.id },
-            data: { ...data, variants: JSON.stringify(data.variants), ...(req.file && { photoUrl: fileUrl(req.file) }) },
-            include: { seller: { select: { name: true } } },
+        const existing = (await prisma.productPhoto.findMany({ where: { productId: product.id } })).map((photo) => photo.url)
+        if (existing.length === 0) existing.push(product.photoUrl)
+        const photos = resolvePhotos(data.photoOrder, req.files ?? [], existing)
+        const updated = await prisma.$transaction(async (tx) => {
+            await tx.product.update({ where: { id: product.id }, data: productFields(data, photos) })
+            await saveDetails(tx, product.id, data, photos)
+            return tx.product.findUnique({ where: { id: product.id }, include: productInclude })
         })
-        if (req.file) await removeUpload(product.photoUrl)
+        await cleanupUploads(req.files, photos)
+        await Promise.all(existing.filter((url) => !photos.includes(url)).map(removeUpload))
         res.json({ product: serializeProduct(updated) })
     } catch (error) {
-        if (req.file) await removeUpload(fileUrl(req.file))
+        await cleanupUploads(req.files)
         throw error
     }
 })
@@ -110,6 +169,7 @@ router.put("/products/:id", uploadImage, async (req, res) => {
 // Banner yang sudah disetujui untuk produk ini ikut turun dari slider.
 router.delete("/products/:id", async (req, res) => {
     const product = await findOwnProduct(req)
+    const photos = (await prisma.productPhoto.findMany({ where: { productId: product.id } })).map((photo) => photo.url)
     const requests = await prisma.bannerRequest.findMany({ where: { productId: product.id }, include: { banner: true } })
     const banners = requests.map((request) => request.banner).filter(Boolean)
 
@@ -118,7 +178,7 @@ router.delete("/products/:id", async (req, res) => {
         prisma.product.delete({ where: { id: product.id } }), // bannerRequest ikut terhapus (cascade)
     ])
     await Promise.all([
-        removeUpload(product.photoUrl),
+        ...[...new Set([product.photoUrl, ...photos])].map(removeUpload),
         ...requests.map((request) => removeUpload(request.imageUrl)),
         ...banners.map((banner) => removeUpload(banner.imageUrl)),
     ])
@@ -166,7 +226,7 @@ const rank = (status) => ORDER_ITEM_STATUSES.indexOf(status)
 
 router.patch("/order-items/:id", async (req, res) => {
     const { status } = parse(z.object({ status: z.enum(ORDER_ITEM_STATUSES, { error: "Status tidak valid." }) }), req.body)
-    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) }, include: { order: { select: { paymentStatus: true } } } })
+    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) }, include: { order: { select: { paymentStatus: true, paymentRef: true, deliveryMethod: true } } } })
     if (!item || item.sellerId !== req.user.id || item.order.paymentStatus !== "PAID") throw notFound("Item pesanan")
 
     if (item.status === "DONE" || item.status === "CANCELLED") {
@@ -181,15 +241,32 @@ router.patch("/order-items/:id", async (req, res) => {
 
     // Hanya berlaku kalau status belum berubah sejak dibaca (mis. pembeli membatalkan bersamaan).
     // Dibatalkan seller -> stok dikembalikan (kalau produknya masih ada).
+    // Sudah dibayar online -> refund dibuat untuk admin: harga item, ditambah ongkos antar
+    // kalau tidak ada lagi item seller ini yang tersisa di pesanan (tidak jadi diantar).
     const updated = await prisma.$transaction(async (tx) => {
         const { count } = await tx.orderItem.updateMany({ where: { id: item.id, status: item.status }, data: { status } })
         if (count === 0) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
-        if (status === "CANCELLED" && item.productId) {
-            await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
+        if (status === "CANCELLED") await releaseStock(tx, [item])
+        let refund = null
+        if (status === "CANCELLED" && item.order.paymentRef) {
+            const remaining = await tx.orderItem.count({ where: { orderId: item.orderId, sellerId: req.user.id, status: { not: "CANCELLED" } } })
+            const shipping = item.order.deliveryMethod === "DELIVERY" && remaining === 0 ? DELIVERY_FEE_PER_SELLER : 0
+            refund = await tx.refund.create({
+                data: {
+                    key: `item:${item.id}`,
+                    orderId: item.orderId,
+                    orderItemId: item.id,
+                    amount: item.price * item.quantity + shipping,
+                    reason: "SELLER_CANCELLED",
+                    description: `${item.name}${item.variant ? ` (${item.variant})` : ""} × ${item.quantity} dibatalkan seller${shipping ? " + ongkos antar" : ""}`,
+                },
+            })
         }
-        return tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
+        const saved = await tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
+        return { saved, refund }
     })
-    res.json({ item: serializeOrderItem(updated) })
+    background(events.itemStatusChanged(item.id, status, updated.refund))
+    res.json({ item: serializeOrderItem(updated.saved) })
 })
 
 // ---------- Penghasilan & payout ----------
@@ -246,6 +323,7 @@ router.post("/payouts", async (req, res) => {
                 accountName: req.user.payoutAccountName,
             },
         })
+        background(events.payoutRequested(payout, req.user.name))
         res.status(201).json({ payout: serializePayout(payout) })
     } catch (error) {
         if (error.code === "P2002") throw new HttpError(409, "Masih ada pengajuan yang sedang diproses.")

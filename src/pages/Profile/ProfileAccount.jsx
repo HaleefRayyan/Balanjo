@@ -40,6 +40,7 @@ const ProfileAccount = () => {
                 lastName: form.get("lastName"),
                 name: form.get("name"),
                 email: form.get("email"),
+                emailNotifications: form.get("emailNotifications") === "on",
             })
             if (wantsPassword) {
                 await changePassword.mutateAsync({ oldPassword, newPassword })
@@ -77,6 +78,11 @@ const ProfileAccount = () => {
                         Hapus foto profil
                     </button>
                 )}
+
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[#555]">
+                    <input name="emailNotifications" type="checkbox" defaultChecked={user.emailNotifications} className="h-4 w-4 accent-button" />
+                    Kirim notifikasi pesanan, payout, dan ulasan ke email saya
+                </label>
 
                 <h2 className="mt-4 text-[17px] font-semibold text-black">Password</h2>
                 <label className={labelClass}>

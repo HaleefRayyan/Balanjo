@@ -16,3 +16,8 @@ export const payoutStatus = {
     PAID: { label: "Dibayar", className: "bg-green-100 text-green-800" },
     REJECTED: { label: "Ditolak", className: "bg-red-100 text-red-700" },
 }
+
+export const refundStatus = {
+    PENDING: { label: "Refund diproses", className: "bg-amber-100 text-amber-800" },
+    REFUNDED: { label: "Dana dikembalikan", className: "bg-green-100 text-green-800" },
+}

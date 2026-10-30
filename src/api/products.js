@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { api, toQuery } from "./client"
 
-// params: { q, category, page, pageSize, ids, excludeId } -> { products, total, page, pageSize }
+// params: { q, category, page, pageSize, ids, excludeId, sort, minPrice, maxPrice } -> { products, total, page, pageSize }
 export const useProducts = (params = {}, options = {}) =>
     useQuery({
         queryKey: ["products", params],

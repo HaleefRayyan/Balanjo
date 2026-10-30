@@ -20,3 +20,6 @@ export const PAYMENT_EXPIRY_MINUTES = 60
 export const PAYOUT_METHODS = ["BCA", "BRI", "BNI", "Mandiri", "BSI", "CIMB Niaga", "Permata", "SeaBank", "Bank Jago", "GoPay", "OVO", "DANA", "ShopeePay"]
 export const PAYOUT_MIN_AMOUNT = 10000
 export const PAYOUT_STATUSES = ["PENDING", "PAID", "REJECTED"]
+
+export const PAYMENT_STATUSES = ["UNPAID", "PAID", "EXPIRED", "FAILED", "CANCELLED"]
+export const REFUND_STATUSES = ["PENDING", "REFUNDED"]

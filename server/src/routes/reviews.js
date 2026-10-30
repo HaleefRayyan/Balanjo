@@ -4,6 +4,8 @@ import { prisma } from "../db.js"
 import { isOwnerOrAdmin, requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeReview } from "../utils/serialize.js"
+import { background } from "../utils/notify.js"
+import * as events from "../utils/events.js"
 
 const router = Router()
 router.use(requireAuth)
@@ -29,6 +31,7 @@ router.post("/", async (req, res) => {
         data: { rating: data.rating, comment: data.comment, productId: item.productId, userId: req.user.id, orderItemId: item.id },
         include: { user: { select: { name: true, avatarUrl: true } }, orderItem: { select: { variant: true } } },
     })
+    background(events.reviewCreated(review))
     res.status(201).json({ review: serializeReview(review) })
 })
 

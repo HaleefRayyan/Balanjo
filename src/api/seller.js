@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "./client"
 
-// { revenue, orders } untuk Dashboard Seller Centre
-export const useSellerStats = () =>
+// { revenue, orders, toProcess } untuk Dashboard Seller Centre & badge pesanan baru
+export const useSellerStats = (options = {}) =>
     useQuery({
         queryKey: ["seller", "stats"],
         queryFn: () => api("/seller/stats").then((data) => data.stats),
+        ...options,
     })
 
 // ---------- Produk milik seller ----------
