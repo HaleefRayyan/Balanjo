@@ -56,7 +56,7 @@ const Cart = () => {
                 <p className="text-xl font-semibold text-[#2d2d2d]">Pesanan #{order.id} berhasil dibuat!</p>
                 <p className="mt-2 text-abu">Total {formatRupiah(order.total)}. Seller akan menghubungi kamu untuk konfirmasi pembayaran dan pengiriman.</p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
-                    <Link to="/orders" className="inline-flex rounded-md bg-button px-6 py-3 text-white">Lihat pesanan saya</Link>
+                    <Link to="/profile/orders" className="inline-flex rounded-md bg-button px-6 py-3 text-white">Lihat pesanan saya</Link>
                     <Link to="/e-commerce" className="inline-flex rounded-md border border-button px-6 py-3 text-button">Belanja lagi</Link>
                 </div>
             </div>

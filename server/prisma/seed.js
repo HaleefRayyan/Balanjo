@@ -62,7 +62,10 @@ const main = async () => {
         elizabeth: { name: "Elizabeth Slavin", username: "elizabeth", email: "elizabeth@gmail.com" },
     })) {
         const passwordHash = key === "admin" ? await hash("admin12345") : userPassword
-        users[key] = await prisma.user.create({ data: { ...data, passwordHash, createdAt: daysAgo(30) } })
+        const [firstName, ...rest] = data.name.split(" ")
+        users[key] = await prisma.user.create({
+            data: { ...data, firstName, lastName: rest.join(" ") || null, passwordHash, createdAt: daysAgo(30) },
+        })
     }
 
     // ---------- Blog ----------

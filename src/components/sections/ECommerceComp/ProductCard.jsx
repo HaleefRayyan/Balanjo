@@ -36,7 +36,7 @@ const ProductCard = ({ product }) => {
                 </h3>
                 <span className="mt-2 text-base font-semibold sm:mt-4 sm:text-[20px]">{formatRupiah(product.price)}</span>
                 {isOwnProduct ? (
-                    <Link to="/seller" className="mt-2 flex h-9 w-full max-w-37.5 items-center justify-center rounded-md border border-button text-[11px] text-button sm:mt-4 sm:h-11 sm:text-[14px]">
+                    <Link to="/seller/products" className="mt-2 flex h-9 w-full max-w-37.5 items-center justify-center rounded-md border border-button text-[11px] text-button sm:mt-4 sm:h-11 sm:text-[14px]">
                         Produk tokomu
                     </Link>
                 ) : product.stock === 0 ? (

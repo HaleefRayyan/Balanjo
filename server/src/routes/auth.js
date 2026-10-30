@@ -28,6 +28,12 @@ const uniqueUsername = async (emailAddress) => {
     return username
 }
 
+// "Budi Santoso Putra" -> { firstName: "Budi", lastName: "Santoso Putra" }
+const splitName = (fullName) => {
+    const [firstName, ...rest] = fullName.trim().split(/\s+/)
+    return { firstName, lastName: rest.join(" ") || null }
+}
+
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex")
 
 router.post("/register", authLimiter, async (req, res) => {
@@ -38,6 +44,7 @@ router.post("/register", authLimiter, async (req, res) => {
     const user = await prisma.user.create({
         data: {
             name: data.name,
+            ...splitName(data.name),
             email: data.email,
             username: await uniqueUsername(data.email),
             passwordHash: await bcrypt.hash(data.password, HASH_ROUNDS),
@@ -69,8 +76,14 @@ router.get("/me", (req, res) => {
 
 // ---------- Profil ----------
 
+// firstName wajib; lastName boleh kosong (banyak nama satu kata); name = nama tampilan
 router.patch("/me", requireAuth, async (req, res) => {
-    const data = parse(z.object({ name: z.string().trim().min(1, "Nama wajib diisi.").max(80), email }), req.body)
+    const data = parse(z.object({
+        firstName: z.string().trim().min(1, "Nama depan wajib diisi.").max(40),
+        lastName: z.string().trim().max(40).optional().transform((value) => value || null),
+        name: z.string().trim().min(1, "Nama tampilan wajib diisi.").max(80),
+        email,
+    }), req.body)
     if (data.email !== req.user.email && await prisma.user.findUnique({ where: { email: data.email } })) {
         throw new HttpError(409, "Email sudah dipakai akun lain.")
     }

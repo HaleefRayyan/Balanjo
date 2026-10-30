@@ -9,8 +9,9 @@ import { slugify } from "../../../utils/format"
 // DOMParser tidak menjalankan script / memuat gambar (beda dengan innerHTML di elemen biasa)
 const hasText = (html) => new DOMParser().parseFromString(html, "text/html").body.textContent.trim().length > 0
 
-// blog kosong = Upload Artikel baru; blog ada = Edit Artikel (slug tidak berubah)
-const ArticleForm = ({ blog }) => {
+// blog kosong = Upload Artikel baru; blog ada = Edit Artikel (slug tidak berubah).
+// embedded: tampil di dalam panel Profil (tanpa banner), kembali ke `returnTo` setelah disimpan.
+const ArticleForm = ({ blog, embedded = false, returnTo }) => {
     const isEdit = Boolean(blog)
     const createBlog = useCreateBlog()
     const updateBlog = useUpdateBlog()
@@ -45,19 +46,14 @@ const ArticleForm = ({ blog }) => {
         else if (removeImage) formData.set("removeImage", "1")
 
         const options = {
-            onSuccess: (saved) => navigate(`/blog/${saved.slug}`),
+            onSuccess: (saved) => navigate(returnTo ?? `/blog/${saved.slug}`),
             onError: (requestError) => setError(requestError.message),
         }
         if (isEdit) updateBlog.mutate({ id: blog.id, formData }, options)
         else createBlog.mutate(formData, options)
     }
 
-    return (
-        <>
-            <PageBanner>{isEdit ? "Edit Artikel" : "Upload Artikel"}</PageBanner>
-
-            <div className="px-4 sm:px-8 lg:px-14.75">
-            <main className="mx-auto mb-16 mt-12 max-w-430 rounded-lg bg-white px-5 py-7 sm:px-8 lg:mt-21 lg:px-12.25 lg:py-9">
+    const form = (
                 <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
                     <label className="flex flex-col gap-1 text-sm text-[#a6a6a6]">
                         Judul
@@ -128,6 +124,17 @@ const ArticleForm = ({ blog }) => {
                         {saving ? "Menyimpan..." : isEdit ? "Simpan" : "Kirim"}
                     </button>
                 </form>
+    )
+
+    if (embedded) return <div className="rounded-lg bg-white px-5 py-7 sm:px-8">{form}</div>
+
+    return (
+        <>
+            <PageBanner>{isEdit ? "Edit Artikel" : "Upload Artikel"}</PageBanner>
+
+            <div className="px-4 sm:px-8 lg:px-14.75">
+            <main className="mx-auto mb-16 mt-12 max-w-430 rounded-lg bg-white px-5 py-7 sm:px-8 lg:mt-21 lg:px-12.25 lg:py-9">
+                {form}
             </main>
             </div>
         </>

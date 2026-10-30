@@ -4,8 +4,9 @@ import PageBanner from "../../layout/PageBanner"
 import { useCreateForumPost, useUpdateForumPost } from "../../../api/forum"
 import { forumCategories } from "../../../constants/categories"
 
-// post kosong = Mulai Diskusi baru; post ada = Edit Diskusi
-const DiscussionForm = ({ post }) => {
+// post kosong = Mulai Diskusi baru; post ada = Edit Diskusi.
+// embedded: tampil di dalam panel Profil (tanpa banner), kembali ke `returnTo` setelah disimpan.
+const DiscussionForm = ({ post, embedded = false, returnTo }) => {
     const isEdit = Boolean(post)
     const createPost = useCreateForumPost()
     const updatePost = useUpdateForumPost()
@@ -39,19 +40,14 @@ const DiscussionForm = ({ post }) => {
         else if (removeImage) formData.set("removeImage", "1")
 
         const options = {
-            onSuccess: (saved) => navigate(`/forum/${saved.id}`),
+            onSuccess: (saved) => navigate(returnTo ?? `/forum/${saved.id}`),
             onError: (requestError) => setError(requestError.message),
         }
         if (isEdit) updatePost.mutate({ id: post.id, formData }, options)
         else createPost.mutate(formData, options)
     }
 
-    return (
-        <>
-            <PageBanner>{isEdit ? "Edit Diskusi" : "Mulai Diskusi"}</PageBanner>
-
-            <div className="px-4 sm:px-8 lg:px-14.75">
-                <main className="mx-auto mb-16 mt-12 max-w-430 rounded-lg bg-white px-5 py-7 sm:px-8 lg:mt-21 lg:px-12.25 lg:py-9">
+    const form = (
                     <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
                         <label className="flex flex-col gap-1 text-sm text-[#a6a6a6]">
                             Apa yang mau kamu diskusikan?
@@ -104,6 +100,17 @@ const DiscussionForm = ({ post }) => {
                             {saving ? "Menyimpan..." : isEdit ? "Simpan" : "Kirim"}
                         </button>
                     </form>
+    )
+
+    if (embedded) return <div className="rounded-lg bg-white px-5 py-7 sm:px-8">{form}</div>
+
+    return (
+        <>
+            <PageBanner>{isEdit ? "Edit Diskusi" : "Mulai Diskusi"}</PageBanner>
+
+            <div className="px-4 sm:px-8 lg:px-14.75">
+                <main className="mx-auto mb-16 mt-12 max-w-430 rounded-lg bg-white px-5 py-7 sm:px-8 lg:mt-21 lg:px-12.25 lg:py-9">
+                    {form}
                 </main>
             </div>
         </>

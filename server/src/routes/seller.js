@@ -35,13 +35,36 @@ const findOwnProduct = async (req) => {
     return product
 }
 
-router.get("/products", async (req, res) => {
-    const products = await prisma.product.findMany({
-        where: { sellerId: req.user.id },
-        include: { seller: { select: { name: true } } },
-        orderBy: { createdAt: "desc" },
+// Ringkasan untuk Dashboard Seller Centre: pendapatan & jumlah pesanan (item yang dibatalkan tidak dihitung)
+router.get("/stats", async (req, res) => {
+    const items = await prisma.orderItem.findMany({
+        where: { sellerId: req.user.id, status: { not: "CANCELLED" } },
+        select: { orderId: true, price: true, quantity: true },
     })
-    res.json({ products: products.map(serializeProduct) })
+    res.json({
+        stats: {
+            revenue: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            orders: new Set(items.map((item) => item.orderId)).size,
+        },
+    })
+})
+
+// Produk milik seller + jumlah terjual (item yang tidak dibatalkan)
+router.get("/products", async (req, res) => {
+    const [products, sales] = await Promise.all([
+        prisma.product.findMany({
+            where: { sellerId: req.user.id },
+            include: { seller: { select: { name: true } } },
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.orderItem.groupBy({
+            by: ["productId"],
+            where: { sellerId: req.user.id, status: { not: "CANCELLED" }, productId: { not: null } },
+            _sum: { quantity: true },
+        }),
+    ])
+    const sold = new Map(sales.map((row) => [row.productId, row._sum.quantity ?? 0]))
+    res.json({ products: products.map((product) => ({ ...serializeProduct(product), sold: sold.get(product.id) ?? 0 })) })
 })
 
 router.post("/products", uploadImage, async (req, res) => {

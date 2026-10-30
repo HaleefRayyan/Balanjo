@@ -59,16 +59,22 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 
 ## Your account
 
-- **Profil Saya** (`/profile`, in the user menu): change your name, email and profile photo, change your password, and see **Artikel Saya** and **Diskusi Saya**, where you can edit or delete what you posted.
-- Authors (and admins) see **Edit** and **Hapus** on their own articles and discussions. Editing an article keeps its URL (slug).
+- **Profil Saya** (`/profile`, in the user menu) is a panel with its own sidebar:
+  - **Akun:** first name, last name, display name (shown on articles, discussions and reviews), email, and password, saved with one **Save changes** button. Click the photo in the sidebar to change it.
+  - **Riwayat Pesanan:** your orders. You can cancel an order until a seller starts processing it.
+  - **Kelola Blog** and **Kelola Forum:** your articles and discussions, with view, edit (inside the panel) and delete.
+- Authors and admins also see **Edit** and **Hapus** on their own articles and discussions. Editing an article keeps its URL (slug).
 - Reply authors can delete their own replies, and admins can delete any reply.
 
 ## Selling and orders
 
-- Any logged-in user can sell. Open **Toko Saya** (`/seller`) from the user menu to add products, handle incoming orders (status: Menunggu konfirmasi → Diproses → Dikirim → Selesai, or Dibatalkan), and request promo banners. Banners approved by an admin appear in the Get Started slider.
-- **Pesanan Saya** (`/orders`) lists your orders. You can cancel an order until a seller starts processing it.
+- Any logged-in user can sell. **Seller Centre** (`/seller`, in the user menu) is a panel with:
+  - **Dashboard:** total revenue, total orders, and recent orders.
+  - **Produk:** your products with stock and units sold; add, edit and delete them.
+  - **Pesanan:** incoming orders, one row per ordered product. View the details, change the status (Menunggu konfirmasi → Diproses → Pengiriman → Selesai), or cancel before shipping.
+  - **Banner Promosi:** request a promo banner. Banners approved by an admin appear in the Get Started slider.
 - Each order item has its own status, because one order can contain products from several sellers.
-- Products have a **stock** count set by the seller. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
+- Products have a **stock** count. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
 
 ## Database
 

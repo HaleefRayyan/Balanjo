@@ -45,7 +45,7 @@ const DetailBlog = () => {
                 </div>
                 {canManage && (
                     <div className="mt-5 flex gap-3 font-inter text-sm">
-                        <Link to={`/blog/${blog.slug}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit artikel</Link>
+                        <Link to={`/profile/blogs/${blog.slug}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit artikel</Link>
                         <button type="button" onClick={handleDelete} disabled={deleteBlog.isPending} className="cursor-pointer rounded-md border border-red-300 px-4 py-2 text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
                             {deleteBlog.isPending ? "Menghapus..." : "Hapus"}
                         </button>

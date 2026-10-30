@@ -23,3 +23,6 @@ export const formatDateTime = (date = new Date()) => {
     const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" ", "").toLowerCase()
     return `${day}, ${time}`
 }
+
+// 12 -> "#000012" (kode pesanan / produk seperti di desain)
+export const formatCode = (id) => `#${String(id).padStart(6, "0")}`

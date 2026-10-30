@@ -33,7 +33,9 @@ try {
         const base = email.split("@")[0].replace(/[^a-z0-9_.]/g, "") || "admin"
         let username = base
         for (let n = 2; await prisma.user.findUnique({ where: { username } }); n++) username = `${base}${n}`
-        await prisma.user.create({ data: { name: values.name?.trim() || "Admin", email, username, passwordHash, role: "ADMIN" } })
+        const name = values.name?.trim() || "Admin"
+        const [firstName, ...rest] = name.split(/\s+/)
+        await prisma.user.create({ data: { name, firstName, lastName: rest.join(" ") || null, email, username, passwordHash, role: "ADMIN" } })
         console.log(`Admin ${email} dibuat. Login di /login.`)
     }
 } finally {
