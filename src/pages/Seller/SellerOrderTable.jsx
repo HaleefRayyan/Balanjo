@@ -7,6 +7,10 @@ import { EditIcon, EyeIcon, TrashIcon } from "../../components/ui/icons"
 import { useUpdateOrderItemStatus } from "../../api/seller"
 import { nextStatuses, orderStatus } from "../../constants/orders"
 import { formatCode, formatRupiah, formatShortDate } from "../../utils/format"
+import { deliveryLabel } from "../../constants/shop"
+
+// 0812-3456 -> 62812... untuk link WhatsApp
+const waNumber = (phone) => phone.replace(/^\+/, "").replace(/^0/, "62")
 
 const StatusText = ({ status }) => (
     <span className={`font-semibold ${status === "CANCELLED" ? "text-abu line-through" : "text-black"}`}>{orderStatus[status]?.label ?? status}</span>
@@ -24,6 +28,19 @@ const DetailModal = ({ row, onClose }) => (
             <dt className="text-abu">Email</dt><dd><a href={`mailto:${row.buyer.email}`} className="text-button hover:underline">{row.buyer.email}</a></dd>
             <dt className="text-abu">Status</dt><dd><StatusText status={row.status} /></dd>
         </dl>
+        {row.delivery && (
+            <dl className="mt-5 grid grid-cols-[120px_1fr] gap-y-2 border-t border-line pt-4 text-sm">
+                <dt className="text-abu">Pengiriman</dt><dd className="font-medium">{deliveryLabel(row.delivery.method)}</dd>
+                <dt className="text-abu">Penerima</dt><dd>{row.delivery.recipientName}</dd>
+                <dt className="text-abu">HP / WA</dt>
+                <dd>
+                    {row.delivery.phone}{" "}
+                    <a href={`https://wa.me/${waNumber(row.delivery.phone)}`} target="_blank" rel="noopener noreferrer" className="text-button hover:underline">Chat WhatsApp</a>
+                </dd>
+                {row.delivery.address && <><dt className="text-abu">Titik temu</dt><dd className="whitespace-pre-line">{row.delivery.address}</dd></>}
+                {row.delivery.note && <><dt className="text-abu">Catatan</dt><dd className="whitespace-pre-line">{row.delivery.note}</dd></>}
+            </dl>
+        )}
     </Modal>
 )
 

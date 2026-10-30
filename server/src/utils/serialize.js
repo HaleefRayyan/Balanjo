@@ -47,7 +47,8 @@ export const serializeForumPost = (post) => ({
     ...(post.comments && { comments: post.comments.map(serializeComment) }),
 })
 
-export const serializeProduct = (product) => ({
+// rating: { average, count } dari ulasan (diisi route produk)
+export const serializeProduct = (product, rating = { average: null, count: 0 }) => ({
     id: product.id,
     name: product.name,
     category: product.category,
@@ -56,6 +57,7 @@ export const serializeProduct = (product) => ({
     photo: product.photoUrl,
     variants: JSON.parse(product.variants),
     stock: product.stock,
+    rating,
     seller: product.seller?.name ?? null,
     sellerId: product.sellerId,
 })
@@ -85,11 +87,34 @@ export const serializeOrderItem = (item) => ({
     status: item.status,
     photo: item.product?.photoUrl ?? null, // null kalau produknya sudah dihapus
     seller: item.seller?.name ?? null,
+    review: item.review ? { id: item.review.id, rating: item.review.rating } : null,
+})
+
+export const serializeDelivery = (order) => ({
+    method: order.deliveryMethod,
+    recipientName: order.recipientName,
+    phone: order.phone,
+    address: order.address,
+    note: order.note,
+})
+
+export const serializeReview = (review) => ({
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment,
+    author: review.user?.name,
+    authorAvatar: review.user?.avatarUrl ?? null,
+    authorId: review.userId,
+    variant: review.orderItem?.variant ?? null,
+    createdAt: review.createdAt,
 })
 
 export const serializeOrder = (order) => ({
     id: order.id,
     total: order.total,
+    subtotal: order.total - order.shippingFee,
+    shippingFee: order.shippingFee,
+    delivery: serializeDelivery(order),
     createdAt: order.createdAt,
     items: order.items?.map(serializeOrderItem),
 })

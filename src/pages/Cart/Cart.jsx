@@ -9,6 +9,8 @@ import { useCreateOrder } from "../../api/orders"
 import { useAuth } from "../../context/auth"
 import { useCart } from "../../context/cart"
 import { formatRupiah } from "../../utils/format"
+import { DELIVERY_FEE_PER_SELLER } from "../../constants/shop"
+import CheckoutForm from "./CheckoutForm"
 
 const Cart = () => {
     const { items, count, setQuantity, removeItem, removeProducts, clear } = useCart()
@@ -16,6 +18,7 @@ const Cart = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const [order, setOrder] = useState(null)
+    const [deliveryMethod, setDeliveryMethod] = useState("PICKUP")
     const createOrder = useCreateOrder()
 
     // detail produk (nama, harga, foto) diambil dari API berdasarkan id di keranjang
@@ -30,6 +33,9 @@ const Cart = () => {
     for (const line of lines) inCart.set(line.productId, (inCart.get(line.productId) ?? 0) + line.quantity)
     const overStock = (line) => inCart.get(line.productId) > line.product.stock
     const hasStockProblem = lines.some(overStock)
+    // antar: ongkos per seller (tiap seller mengantar sendiri) — dihitung ulang di server
+    const sellerCount = new Set(lines.map((line) => line.product.sellerId)).size
+    const shippingFee = user && deliveryMethod === "DELIVERY" ? DELIVERY_FEE_PER_SELLER * sellerCount : 0
 
     // produk yang sudah dihapus seller/admin dibuang dari keranjang
     const missing = products.isSuccess && !products.isPlaceholderData ? ids.filter((id) => !byId.has(id)) : []
@@ -38,13 +44,9 @@ const Cart = () => {
         if (missingKey) removeProducts(missingKey.split(",").map(Number))
     }, [missingKey]) // eslint-disable-line react-hooks/exhaustive-deps -- removeProducts berubah tiap render
 
-    const handleCheckout = () => {
-        if (!user) {
-            navigate("/login", { state: { from: location } })
-            return
-        }
+    const handleCheckout = (delivery) => {
         createOrder.mutate(
-            items.map(({ productId, variant, quantity }) => ({ productId, variant, quantity })),
+            { items: items.map(({ productId, variant, quantity }) => ({ productId, variant, quantity })), delivery },
             { onSuccess: (created) => { clear(); setOrder(created) } },
         )
     }
@@ -54,7 +56,7 @@ const Cart = () => {
         content = (
             <div className="rounded-lg bg-white px-6 py-16 text-center">
                 <p className="text-xl font-semibold text-[#2d2d2d]">Pesanan #{order.id} berhasil dibuat!</p>
-                <p className="mt-2 text-abu">Total {formatRupiah(order.total)}. Seller akan menghubungi kamu untuk konfirmasi pembayaran dan pengiriman.</p>
+                <p className="mt-2 text-abu">Total {formatRupiah(order.total)}. Seller akan menghubungi kamu di {order.delivery.phone} untuk konfirmasi pembayaran dan {order.delivery.method === "DELIVERY" ? "pengantaran" : "pengambilan"}.</p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                     <Link to="/profile/orders" className="inline-flex rounded-md bg-button px-6 py-3 text-white">Lihat pesanan saya</Link>
                     <Link to="/e-commerce" className="inline-flex rounded-md border border-button px-6 py-3 text-button">Belanja lagi</Link>
@@ -112,15 +114,34 @@ const Cart = () => {
                         <span>Total item</span>
                         <span>{count}</span>
                     </div>
-                    <div className="mt-2 flex justify-between border-t border-line pt-4 text-lg font-semibold">
+                    <div className="mt-2 flex justify-between text-sm text-abu">
                         <span>Subtotal</span>
                         <span>{formatRupiah(subtotal)}</span>
                     </div>
+                    {user && deliveryMethod === "DELIVERY" && (
+                        <div className="mt-2 flex justify-between text-sm text-abu">
+                            <span>Ongkos antar ({sellerCount} seller × {formatRupiah(DELIVERY_FEE_PER_SELLER)})</span>
+                            <span>{formatRupiah(shippingFee)}</span>
+                        </div>
+                    )}
+                    <div className="mb-4 mt-2 flex justify-between border-t border-line pt-4 text-lg font-semibold">
+                        <span>Total</span>
+                        <span>{formatRupiah(subtotal + shippingFee)}</span>
+                    </div>
+                    {user && (
+                        <CheckoutForm id="checkout-form" user={user} method={deliveryMethod} onMethodChange={setDeliveryMethod} onSubmit={handleCheckout} />
+                    )}
                     {createOrder.isError && <p role="alert" className="mt-4 text-sm text-red-600">{createOrder.error.message}</p>}
                     {hasStockProblem && <p className="mt-4 text-sm text-red-600">Ada produk yang melebihi stok.</p>}
-                    <Button className="mt-6 h-11 w-full rounded-md text-sm disabled:cursor-not-allowed disabled:opacity-60" onClick={handleCheckout} disabled={createOrder.isPending || hasStockProblem}>
-                        {createOrder.isPending ? "Memproses..." : user ? "Checkout" : "Login untuk checkout"}
-                    </Button>
+                    {user ? (
+                        <Button type="submit" form="checkout-form" className="mt-6 h-11 w-full rounded-md text-sm disabled:cursor-not-allowed disabled:opacity-60" disabled={createOrder.isPending || hasStockProblem}>
+                            {createOrder.isPending ? "Memproses..." : "Checkout"}
+                        </Button>
+                    ) : (
+                        <Button className="mt-6 h-11 w-full rounded-md text-sm" onClick={() => navigate("/login", { state: { from: location } })}>
+                            Login untuk checkout
+                        </Button>
+                    )}
                     <Link to="/e-commerce" className="mt-3 block text-center text-sm text-button hover:underline">Lanjut belanja</Link>
                 </aside>
             </div>

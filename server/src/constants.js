@@ -8,3 +8,7 @@ export const BANNER_REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED"]
 
 // Status per item pesanan, berurutan. CANCELLED hanya boleh dari PENDING/PROCESSING.
 export const ORDER_ITEM_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DONE", "CANCELLED"]
+
+// Pengiriman saat checkout (harus sama dengan src/constants/shop.js di frontend)
+export const DELIVERY_METHODS = ["PICKUP", "DELIVERY"] // ambil di kampus | antar di area kampus
+export const DELIVERY_FEE_PER_SELLER = 5000 // ongkos antar per seller dalam satu pesanan

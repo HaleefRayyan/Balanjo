@@ -61,7 +61,7 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
 
 - **Profil Saya** (`/profile`, in the user menu) is a panel with its own sidebar:
   - **Akun:** first name, last name, display name (shown on articles, discussions and reviews), email, and password, saved with one **Save changes** button. Click the photo in the sidebar to change it.
-  - **Riwayat Pesanan:** your orders. You can cancel an order until a seller starts processing it.
+  - **Riwayat Pesanan:** your orders. You can cancel an order until a seller starts processing it, and review a product (1–5 stars plus an optional comment) once its order item is **Selesai**.
   - **Kelola Blog** and **Kelola Forum:** your articles and discussions, with view, edit (inside the panel) and delete.
 - Authors and admins also see **Edit** and **Hapus** on their own articles and discussions. Editing an article keeps its URL (slug).
 - Reply authors can delete their own replies, and admins can delete any reply.
@@ -74,6 +74,9 @@ Every seeded user has the password `password123` (wawan@, maemunah@, munaroh@, a
   - **Pesanan:** incoming orders, one row per ordered product. View the details, change the status (Menunggu konfirmasi → Diproses → Pengiriman → Selesai), or cancel before shipping.
   - **Banner Promosi:** request a promo banner. Banners approved by an admin appear in the Get Started slider.
 - Each order item has its own status, because one order can contain products from several sellers.
+- **Checkout** asks for delivery details: pick up on campus (free) or delivery within the campus area (Rp5.000 per seller in the order), plus recipient name, phone/WhatsApp number, meeting point (delivery only) and a note. Sellers see these in the order details, with a **Chat WhatsApp** link to the buyer.
+- **Cart:** guests keep their cart in the browser. After login it is stored on your account, so it is the same on every device; anything added as a guest is merged in.
+- **Reviews:** shown on the product page (with the average rating) and as a rating line on product cards. Reviewers and admins can delete a review.
 - Products have a **stock** count. Ordering reduces it (an order is refused if stock runs out), and cancelling an order puts the stock back. Sold-out products show "Stok habis".
 
 ## Database
@@ -110,7 +113,7 @@ src/
   api/          React Query hooks for each API resource (products, blogs, forum, banners, admin, auth)
   components/   layout/ (Navbar, Footer, PageBanner), sections/, ui/, admin/
   constants/    category lists (must match server/src/constants.js)
-  context/      AuthProvider (login state from /api/auth/me), CartProvider (cart stored in the browser)
+  context/      AuthProvider (login state from /api/auth/me), CartProvider (cart in the browser for guests, on the account after login)
   layouts/      MainLayout, AuthLayout, AdminLayout
   pages/        one folder per page; pages/admin/* for the admin panel
   routes/       route table + ProtectedRoute
