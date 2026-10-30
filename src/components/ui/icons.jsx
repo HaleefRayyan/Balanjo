@@ -51,3 +51,23 @@ export const MenuIcon = ({ className = "h-6 w-6" }) => (
         <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
 )
+
+export const BagIcon = ({ className = "h-6 w-6" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d="M8 7V6a4 4 0 1 1 8 0v1h2.2a1.5 1.5 0 0 1 1.5 1.4l.8 11A2.5 2.5 0 0 1 18 22H6a2.5 2.5 0 0 1-2.5-2.6l.8-11A1.5 1.5 0 0 1 5.8 7H8Zm2 0h4V6a2 2 0 1 0-4 0v1Zm-1 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+    </svg>
+)
+
+export const CartIcon = ({ className = "h-6 w-6" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M2 3.5A1 1 0 0 1 3 2.5h1.6a1.5 1.5 0 0 1 1.46 1.15L6.4 5H20a1 1 0 0 1 .97 1.24l-1.6 6.4A2 2 0 0 1 17.43 14H8.6l.3 1.3a.5.5 0 0 0 .5.4H18a1 1 0 1 1 0 2H9.4a2.5 2.5 0 0 1-2.44-1.94L4.2 4.5H3a1 1 0 0 1-1-1Z" />
+        <circle cx="9.5" cy="20" r="1.5" />
+        <circle cx="17" cy="20" r="1.5" />
+    </svg>
+)
+
+export const CameraIcon = ({ className = "h-4 w-4" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path fillRule="evenodd" d="M9.2 3.5a1.5 1.5 0 0 0-1.3.75L7 6H5a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3h-2l-.9-1.75a1.5 1.5 0 0 0-1.3-.75H9.2ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" clipRule="evenodd" />
+    </svg>
+)

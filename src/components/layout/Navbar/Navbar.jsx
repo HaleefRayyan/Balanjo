@@ -90,8 +90,8 @@ const Navbar = ({ overlay = false }) => {
                                     <span className="text-button">{user.name}</span>
                                 </li>
                                 <li className="lg:hidden"><Link to="/profile">Profil Saya</Link></li>
-                                <li className="lg:hidden"><Link to="/orders">Pesanan Saya</Link></li>
-                                <li className="lg:hidden"><Link to="/seller">Toko Saya</Link></li>
+                                <li className="lg:hidden"><Link to="/profile/orders">Riwayat Pesanan</Link></li>
+                                <li className="lg:hidden"><Link to="/seller">Seller Centre</Link></li>
                                 {user.role === "admin" && (
                                     <li className="lg:hidden"><Link to="/admin">Admin Panel</Link></li>
                                 )}
@@ -141,8 +141,8 @@ const Navbar = ({ overlay = false }) => {
                             {isUserMenuOpen && (
                                 <div className="absolute right-0 top-full mt-3 w-44 rounded-lg bg-white py-2 shadow-lg">
                                     <Link to="/profile" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Profil Saya</Link>
-                                    <Link to="/orders" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Pesanan Saya</Link>
-                                    <Link to="/seller" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Toko Saya</Link>
+                                    <Link to="/profile/orders" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Riwayat Pesanan</Link>
+                                    <Link to="/seller" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Seller Centre</Link>
                                     {user.role === "admin" && (
                                         <Link to="/admin" className="block px-4 py-2 text-[16px] text-black hover:bg-background">Admin Panel</Link>
                                     )}

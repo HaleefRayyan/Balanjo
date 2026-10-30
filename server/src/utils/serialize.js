@@ -3,6 +3,8 @@
 export const serializeUser = (user) => ({
     id: user.id,
     name: user.name,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
     username: user.username,
     email: user.email,
     role: user.role === "ADMIN" ? "admin" : "user",

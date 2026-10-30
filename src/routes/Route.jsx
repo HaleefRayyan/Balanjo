@@ -14,12 +14,21 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import NotFound from "../pages/NotFound";
 import Cart from "../pages/Cart";
-import Orders from "../pages/Orders";
-import Profile from "../pages/Profile";
-import EditArtikel from "../pages/EditArtikel";
-import EditDiscussion from "../pages/EditDiscussion";
-import Seller from "../pages/Seller";
+import SellerLayout from "../layouts/SellerLayout";
+import SellerDashboard from "../pages/Seller/SellerDashboard";
+import SellerProducts from "../pages/Seller/SellerProducts";
+import SellerOrders from "../pages/Seller/SellerOrders";
+import SellerBanners from "../pages/Seller/SellerBanners";
 import SellerProductForm from "../pages/SellerProductForm";
+import ProfileLayout from "../layouts/ProfileLayout";
+import ProfileAccount from "../pages/Profile/ProfileAccount";
+import ProfileOrders from "../pages/Profile/ProfileOrders";
+import MyBlogs from "../pages/Profile/MyBlogs";
+import MyPosts from "../pages/Profile/MyPosts";
+import ProfileEditBlog from "../pages/Profile/ProfileEditBlog";
+import ProfileEditPost from "../pages/Profile/ProfileEditPost";
+import { RedirectBlogEdit, RedirectForumEdit } from "./Redirects";
+import { Navigate } from "react-router-dom";
 import ForumDetail from "../pages/ForumDetail";
 import NewDiscussion from "../pages/NewDiscussion";
 import ForgotPassword from "../pages/ForgotPassword";
@@ -47,7 +56,7 @@ const routes = [
                         element: <ProtectedRoute />,
                         children: [
                             { path: "new", element: <NewDiscussion /> },
-                            { path: ":id/edit", element: <EditDiscussion /> },
+                            { path: ":id/edit", element: <RedirectForumEdit /> },
                         ],
                     },
                     { path: ":id", element: <ForumDetail /> },
@@ -61,7 +70,7 @@ const routes = [
                         element: <ProtectedRoute />,
                         children: [
                             { path: "new", element: <UploadArtikel /> },
-                            { path: ":slug/edit", element: <EditArtikel /> },
+                            { path: ":slug/edit", element: <RedirectBlogEdit /> },
                         ],
                     },
                     { path: ":slug", element: <DetailBlog /> },
@@ -76,17 +85,43 @@ const routes = [
                 ],
             },
             { path: "cart", element: <Cart /> },
+            { path: "orders", element: <Navigate to="/profile/orders" replace /> },
+            { path: "*", element: <NotFound /> },
+        ],
+    },
+    // Seller Centre & Profil: panel sendiri (sidebar + topbar), di luar navbar/footer situs
+    {
+        path: "/seller",
+        element: <ProtectedRoute />,
+        children: [
             {
-                element: <ProtectedRoute />,
+                element: <SellerLayout />,
                 children: [
-                    { path: "orders", element: <Orders /> },
-                    { path: "profile", element: <Profile /> },
-                    { path: "seller", element: <Seller /> },
-                    { path: "seller/products/new", element: <SellerProductForm /> },
-                    { path: "seller/products/:id/edit", element: <SellerProductForm /> },
+                    { index: true, element: <SellerDashboard /> },
+                    { path: "products", element: <SellerProducts /> },
+                    { path: "products/new", element: <SellerProductForm /> },
+                    { path: "products/:id/edit", element: <SellerProductForm /> },
+                    { path: "orders", element: <SellerOrders /> },
+                    { path: "banners", element: <SellerBanners /> },
                 ],
             },
-            { path: "*", element: <NotFound /> },
+        ],
+    },
+    {
+        path: "/profile",
+        element: <ProtectedRoute />,
+        children: [
+            {
+                element: <ProfileLayout />,
+                children: [
+                    { index: true, element: <ProfileAccount /> },
+                    { path: "orders", element: <ProfileOrders /> },
+                    { path: "blogs", element: <MyBlogs /> },
+                    { path: "blogs/:slug/edit", element: <ProfileEditBlog /> },
+                    { path: "forums", element: <MyPosts /> },
+                    { path: "forums/:id/edit", element: <ProfileEditPost /> },
+                ],
+            },
         ],
     },
     {

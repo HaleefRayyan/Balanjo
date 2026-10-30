@@ -58,7 +58,7 @@ const ForumDetail = () => {
             </div>
             {canManage(post.authorId) && (
                 <div className="mt-3 flex justify-end gap-3 text-sm">
-                    <Link to={`/forum/${post.id}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit diskusi</Link>
+                    <Link to={`/profile/forums/${post.id}/edit`} className="rounded-md border border-button px-4 py-2 text-button hover:bg-button/10">Edit diskusi</Link>
                     <button type="button" onClick={handleDeletePost} disabled={deletePost.isPending} className="cursor-pointer rounded-md border border-red-300 px-4 py-2 text-red-600 hover:bg-red-50 disabled:cursor-wait disabled:opacity-60">
                         {deletePost.isPending ? "Menghapus..." : "Hapus"}
                     </button>

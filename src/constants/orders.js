@@ -2,7 +2,7 @@
 export const orderStatus = {
     PENDING: { label: "Menunggu konfirmasi", className: "bg-amber-100 text-amber-800" },
     PROCESSING: { label: "Diproses", className: "bg-blue-100 text-blue-800" },
-    SHIPPED: { label: "Dikirim", className: "bg-indigo-100 text-indigo-800" },
+    SHIPPED: { label: "Pengiriman", className: "bg-indigo-100 text-indigo-800" },
     DONE: { label: "Selesai", className: "bg-green-100 text-green-800" },
     CANCELLED: { label: "Dibatalkan", className: "bg-gray-200 text-gray-600" },
 }

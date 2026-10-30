@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "./client"
 
+// { revenue, orders } untuk Dashboard Seller Centre
+export const useSellerStats = () =>
+    useQuery({
+        queryKey: ["seller", "stats"],
+        queryFn: () => api("/seller/stats").then((data) => data.stats),
+    })
+
 // ---------- Produk milik seller ----------
 
 export const useMyProducts = () =>
@@ -48,7 +55,7 @@ export const useUpdateOrderItemStatus = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn: ({ id, status }) => api(`/seller/order-items/${id}`, { method: "PATCH", body: { status } }).then((data) => data.item),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "orders"] }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller"] }),
     })
 }
 

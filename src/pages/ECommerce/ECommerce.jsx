@@ -14,7 +14,7 @@ const ECommerce = () => {
 
             <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
                 <img className="h-auto w-full rounded-lg" src={iklan} alt="Mega sale special promo" />
-                <Link to="/seller" aria-label="Mau jual produk sendiri? Buka Toko Saya">
+                <Link to="/seller" aria-label="Mau jual produk sendiri? Buka Seller Centre">
                     <img className="h-auto w-full rounded-lg transition-opacity hover:opacity-90" src={iklanDua} alt="Mau jual produk sendiri?" />
                 </Link>
             </div>

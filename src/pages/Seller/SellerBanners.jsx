@@ -81,6 +81,8 @@ const SellerBanners = () => {
     if (requests.isError) return <ErrorMessage error={requests.error} onRetry={requests.refetch} />
 
     return (
+        <section>
+        <h1 className="mb-6 text-[22px] font-medium text-button">Banner Promosi</h1>
         <div className="grid gap-8 lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start">
             {products.data.length === 0 ? (
                 <div className="rounded-lg bg-white p-6 text-center text-abu">
@@ -109,6 +111,7 @@ const SellerBanners = () => {
                 )}
             </section>
         </div>
+        </section>
     )
 }
 
