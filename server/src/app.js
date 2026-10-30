@@ -18,6 +18,8 @@ import sellerRoutes from "./routes/seller.js"
 import reviewRoutes from "./routes/reviews.js"
 import cartRoutes from "./routes/cart.js"
 import paymentRoutes from "./routes/payments.js"
+import notificationRoutes from "./routes/notifications.js"
+import sellerPublicRoutes from "./routes/sellers.js"
 
 export const createApp = () => {
     const app = express()
@@ -51,6 +53,8 @@ export const createApp = () => {
     app.use("/api/reviews", reviewRoutes)
     app.use("/api/cart", cartRoutes)
     app.use("/api/payments", paymentRoutes)
+    app.use("/api/notifications", notificationRoutes)
+    app.use("/api/sellers", sellerPublicRoutes)
     app.use("/api", (req, res) => res.status(404).json({ error: "Endpoint tidak ditemukan." }))
 
     // Production: layani hasil `npm run build` frontend + fallback SPA ke index.html
@@ -63,7 +67,9 @@ export const createApp = () => {
     app.use((error, req, res, next) => {
         if (error instanceof HttpError) return res.status(error.status).json({ error: error.message })
         if (error instanceof multer.MulterError) {
-            const message = error.code === "LIMIT_FILE_SIZE" ? "Ukuran gambar maksimal 4 MB." : "Upload gambar gagal."
+            const message = error.code === "LIMIT_FILE_SIZE" ? "Ukuran gambar maksimal 4 MB."
+                : error.code === "LIMIT_FILE_COUNT" || error.code === "LIMIT_UNEXPECTED_FILE" ? "Maksimal 5 foto per produk."
+                : "Upload gambar gagal."
             return res.status(400).json({ error: message })
         }
         if (error.type === "entity.parse.failed") return res.status(400).json({ error: "Body JSON tidak valid." })

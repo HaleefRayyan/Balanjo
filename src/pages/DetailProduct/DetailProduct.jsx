@@ -13,23 +13,53 @@ import NotFound from "../NotFound"
 import { StarRating } from "../../components/ui/Stars"
 import ProductReviews from "./ProductReviews"
 
+// Foto utama + deretan thumbnail (kalau lebih dari satu foto)
+const Gallery = ({ photos, name }) => {
+    const [active, setActive] = useState(0)
+    return (
+        <div className="flex flex-col gap-3">
+            <div className="overflow-hidden rounded-md bg-[#f3eef0]">
+                <img src={photos[active]} alt={name} className="aspect-square h-full w-full object-cover" />
+            </div>
+            {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                    {photos.map((photo, index) => (
+                        <button
+                            key={photo}
+                            type="button"
+                            aria-label={`Foto ${index + 1}`}
+                            aria-pressed={index === active}
+                            onClick={() => setActive(index)}
+                            className={`h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded border-2 sm:h-20 sm:w-20 ${index === active ? "border-button" : "border-transparent opacity-70 hover:opacity-100"}`}
+                        >
+                            <img src={photo} alt="" className="h-full w-full object-cover" />
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
 // Dipisah dan diberi key={product.id} supaya variasi & jumlah kembali ke awal saat pindah produk
 const ProductDetail = ({ product }) => {
     const { addItem } = useCart()
     const { user } = useAuth()
     const isOwnProduct = user && product.sellerId === user.id
-    const soldOut = product.stock === 0
     const [quantity, setQuantity] = useState(1)
     const [variant, setVariant] = useState("")
     const [message, setMessage] = useState(null)
     const recommendations = useProducts({ excludeId: product.id, pageSize: 4 })
+    // stok yang berlaku: variasi terpilih, atau total produk
+    const available = variant ? product.variantStock[variant] ?? 0 : product.stock
+    const soldOut = product.stock === 0 || (variant && available === 0)
 
     const handleAdd = () => {
         if (product.variants.length > 0 && !variant) {
             setMessage({ type: "error", text: "Pilih variasi dulu ya." })
             return
         }
-        const amount = Math.min(quantity, product.stock)
+        const amount = Math.min(quantity, available)
         addItem(product.id, variant || undefined, amount)
         setMessage({ type: "success", text: `${amount} × ${product.name} ditambahkan ke keranjang.` })
     }
@@ -39,13 +69,15 @@ const ProductDetail = ({ product }) => {
             <ProductSearch action="/e-commerce" />
 
             <section className="mt-10 grid gap-6 rounded-lg bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] sm:p-6 lg:grid-cols-[1.2fr_0.85fr] lg:gap-8">
-                <div className="overflow-hidden rounded-md bg-[#f3eef0]">
-                    <img src={product.photo} alt={product.name} className="aspect-square h-full w-full object-cover" />
-                </div>
+                <Gallery photos={product.photos} name={product.name} />
 
                 <div className="flex flex-col justify-center py-2 lg:py-6">
                     <h1 className="text-3xl font-semibold leading-tight text-[#2d2d2d] sm:text-4xl">{product.name}</h1>
-                    {product.seller && <p className="mt-1 text-sm text-abu">Dijual oleh <span className="font-medium text-[#555]">{product.seller}</span></p>}
+                    {product.seller && (
+                        <p className="mt-1 text-sm text-abu">
+                            Dijual oleh <Link to={`/e-commerce/seller/${product.sellerId}`} className="font-medium text-[#555] hover:text-button hover:underline">{product.seller}</Link>
+                        </p>
+                    )}
                     {product.rating.count > 0 && (
                         <a href="#reviews-title" className="mt-2 flex items-center gap-2 text-sm text-[#555] hover:text-button">
                             <StarRating value={product.rating.average} />
@@ -56,7 +88,7 @@ const ProductDetail = ({ product }) => {
 
                     <div className="mt-4 flex items-center gap-3">
                         <span className="text-xl font-medium">{formatRupiah(product.price)}</span>
-                        <span className={`text-sm ${soldOut ? "font-medium text-red-600" : "text-abu"}`}>{soldOut ? "Stok habis" : `Stok: ${product.stock}`}</span>
+                        <span className={`text-sm ${soldOut ? "font-medium text-red-600" : "text-abu"}`}>{soldOut ? "Stok habis" : `Stok: ${available}`}</span>
                     </div>
 
                     {product.variants.length > 0 && (
@@ -69,7 +101,10 @@ const ProductDetail = ({ product }) => {
                                 className="mt-2 h-10 w-full rounded-md border border-[#d7d7d7] bg-white px-3 text-xs text-[#333] outline-none focus:border-button"
                             >
                                 <option value="" disabled>Pilih variasi</option>
-                                {product.variants.map((option) => <option key={option}>{option}</option>)}
+                                {product.variants.map((option) => {
+                                    const left = product.variantStock[option] ?? 0
+                                    return <option key={option} value={option} disabled={left === 0}>{option} {left === 0 ? "(habis)" : `(stok ${left})`}</option>
+                                })}
                             </select>
                         </div>
                     )}
@@ -80,7 +115,7 @@ const ProductDetail = ({ product }) => {
                         </p>
                     ) : (
                         <>
-                            <QuantityInput className="mt-7 h-11" value={Math.min(quantity, Math.max(1, product.stock))} onChange={setQuantity} max={Math.max(1, product.stock)} />
+                            <QuantityInput className="mt-7 h-11" value={Math.min(quantity, Math.max(1, available))} onChange={setQuantity} max={Math.max(1, available)} />
                             <Button className="mt-3 h-11 w-full rounded-md text-sm disabled:cursor-not-allowed disabled:opacity-50" onClick={handleAdd} disabled={soldOut}>
                                 {soldOut ? "Stok habis" : "Tambah ke Keranjang"}
                             </Button>

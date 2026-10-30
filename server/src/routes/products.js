@@ -3,10 +3,9 @@ import { z } from "zod"
 import { prisma } from "../db.js"
 import { PRODUCT_CATEGORIES } from "../constants.js"
 import { notFound, parse, parseId } from "../utils/http.js"
-import { serializeProduct, serializeReview } from "../utils/serialize.js"
+import { productInclude, serializeProduct, serializeReview } from "../utils/serialize.js"
 
 const router = Router()
-const withSeller = { seller: { select: { name: true } } }
 
 // { productId: { average, count } } dari tabel ulasan, untuk produk yang sedang ditampilkan
 const ratingsFor = async (productIds) => {
@@ -35,6 +34,7 @@ router.get("/", async (req, res) => {
         category: z.string().optional().transform((value) => value && PRODUCT_CATEGORIES.find((c) => c.toLowerCase() === value.toLowerCase())),
         ids: z.string().regex(/^\d+(,\d+)*$/, "ids harus berupa angka dipisah koma").optional(),
         excludeId: z.coerce.number().int().optional(),
+        sellerId: z.coerce.number().int().positive().optional(),
         page: z.coerce.number().int().min(1).default(1),
         pageSize: z.coerce.number().int().min(1).max(50).default(8),
         sort: z.enum(["newest", "price_asc", "price_desc", "rating"]).optional(),
@@ -50,6 +50,7 @@ router.get("/", async (req, res) => {
         ...(query.q && { name: { contains: query.q, mode: "insensitive" } }),
         ...(query.ids && { id: { in: query.ids.split(",").map(Number) } }),
         ...(query.excludeId && { NOT: { id: query.excludeId } }),
+        ...(query.sellerId && { sellerId: query.sellerId }),
         ...((query.minPrice !== undefined || query.maxPrice !== undefined) && {
             price: { ...(query.minPrice !== undefined && { gte: query.minPrice }), ...(query.maxPrice !== undefined && { lte: query.maxPrice }) },
         }),
@@ -63,7 +64,7 @@ router.get("/", async (req, res) => {
         const ranked = all.map((product) => ({ id: product.id, ...(allRatings.get(product.id) ?? { average: 0, count: 0 }) }))
             .sort((a, b) => b.average - a.average || b.count - a.count || a.id - b.id)
         const pageIds = ranked.slice((query.page - 1) * query.pageSize, query.page * query.pageSize).map((product) => product.id)
-        const pageProducts = await prisma.product.findMany({ where: { id: { in: pageIds } }, include: withSeller })
+        const pageProducts = await prisma.product.findMany({ where: { id: { in: pageIds } }, include: productInclude })
         const byId = new Map(pageProducts.map((product) => [product.id, product]))
         return res.json({
             products: pageIds.filter((id) => byId.has(id)).map((id) => serializeProduct(byId.get(id), allRatings.get(id))),
@@ -75,7 +76,7 @@ router.get("/", async (req, res) => {
         prisma.product.count({ where }),
         prisma.product.findMany({
             where,
-            include: withSeller,
+            include: productInclude,
             orderBy: SORTS[query.sort] ?? { id: "asc" },
             skip: query.ids ? undefined : (query.page - 1) * query.pageSize,
             take: query.ids ? undefined : query.pageSize,
@@ -89,7 +90,7 @@ router.get("/", async (req, res) => {
 })
 
 router.get("/:id", async (req, res) => {
-    const product = await prisma.product.findUnique({ where: { id: parseId(req.params.id) }, include: withSeller })
+    const product = await prisma.product.findUnique({ where: { id: parseId(req.params.id) }, include: productInclude })
     if (!product) throw notFound("Produk")
     const ratings = await ratingsFor([product.id])
     res.json({ product: serializeProduct(product, ratings.get(product.id)) })

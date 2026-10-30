@@ -7,8 +7,11 @@ import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS, PAYMENT_EXPIRY_MINUTES } fro
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeOrder } from "../utils/serialize.js"
+import { releaseStock, reserveStock } from "../utils/stock.js"
 import { cancelTransaction, createSnapTransaction, midtransEnabled } from "../utils/midtrans.js"
 import { closeUnpaidOrder, expireOverdueOrders, refreshPayment } from "../utils/payments.js"
+import { background } from "../utils/notify.js"
+import * as events from "../utils/events.js"
 
 const router = Router()
 router.use(requireAuth)
@@ -45,14 +48,14 @@ router.post("/", async (req, res) => {
         })).min(1, "Keranjang kosong.").max(50),
     }), req.body)
 
-    const products = await prisma.product.findMany({ where: { id: { in: items.map((item) => item.productId) } } })
+    const products = await prisma.product.findMany({ where: { id: { in: items.map((item) => item.productId) } }, include: { variants: true } })
     const byId = new Map(products.map((product) => [product.id, product]))
 
     const lines = items.map((item) => {
         const product = byId.get(item.productId)
         if (!product) throw new HttpError(400, "Ada produk di keranjang yang sudah tidak tersedia.")
         if (product.sellerId === req.user.id) throw new HttpError(400, `Kamu tidak bisa membeli produkmu sendiri (${product.name}).`)
-        const variants = JSON.parse(product.variants)
+        const variants = product.variants.map((variant) => variant.name)
         if (variants.length && !variants.includes(item.variant)) {
             throw new HttpError(400, `Variasi untuk ${product.name} tidak valid.`)
         }
@@ -61,7 +64,7 @@ router.post("/", async (req, res) => {
             sellerId: product.sellerId,
             name: product.name,
             price: product.price,
-            variant: item.variant ?? null,
+            variant: variants.length ? item.variant : null, // produk tanpa variasi: variasi lama di keranjang diabaikan
             quantity: item.quantity,
             platformFee: Math.round(product.price * item.quantity * config.platformFeePercent / 100),
         }
@@ -72,24 +75,9 @@ router.post("/", async (req, res) => {
     const shippingFee = delivery.method === "DELIVERY" ? DELIVERY_FEE_PER_SELLER * sellerCount : 0
     const total = subtotal + shippingFee
 
-    // jumlah per produk (variasi berbeda dari produk yang sama memakai stok yang sama)
-    const needed = new Map()
-    for (const line of lines) needed.set(line.productId, (needed.get(line.productId) ?? 0) + line.quantity)
-
-    // Stok dikurangi dalam satu transaksi: kalau ada yang kurang, semuanya dibatalkan.
-    // `stock >= jumlah` dicek di query update sendiri, jadi dua pembeli tidak bisa mengambil stok terakhir bersamaan.
+    // Stok (per variasi dan total produk) dikurangi dalam satu transaksi: kalau ada yang kurang, semuanya dibatalkan.
     const order = await prisma.$transaction(async (tx) => {
-        for (const [productId, quantity] of needed) {
-            const { count } = await tx.product.updateMany({
-                where: { id: productId, stock: { gte: quantity } },
-                data: { stock: { decrement: quantity } },
-            })
-            if (count === 0) {
-                const product = byId.get(productId)
-                const left = (await tx.product.findUnique({ where: { id: productId } }))?.stock ?? 0
-                throw new HttpError(400, left > 0 ? `Stok ${product.name} tinggal ${left}.` : `Stok ${product.name} habis.`)
-            }
-        }
+        await reserveStock(tx, lines)
         // dengan Midtrans: menunggu pembayaran (stok sudah dipesan sampai batas bayar);
         // tanpa Midtrans (development): langsung dianggap dibayar
         const now = new Date()
@@ -112,6 +100,7 @@ router.post("/", async (req, res) => {
             include: withItems,
         })
     })
+    if (order.paymentStatus === "PAID") background(events.orderPaid(order.id))
     res.status(201).json({ order: serializeOrder(order) })
 })
 
@@ -195,9 +184,7 @@ router.post("/:id/cancel", async (req, res) => {
     await prisma.$transaction(async (tx) => {
         const { count } = await tx.orderItem.updateMany({ where: { orderId: order.id, status: "PENDING" }, data: { status: "CANCELLED" } })
         if (count !== order.items.length) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
-        for (const item of order.items.filter((line) => line.productId)) {
-            await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
-        }
+        await releaseStock(tx, order.items)
     })
     await sendOrder(res, order.id)
 })

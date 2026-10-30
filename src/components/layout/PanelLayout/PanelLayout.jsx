@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import logoCoklat from "../../../assets/navbar/logoCoklat.svg"
 import { MenuIcon } from "../../ui/icons"
 import UserMenu from "../UserMenu"
+import NotificationBell from "../NotificationBell"
 
 // Kerangka panel (Seller Centre, Profil): topbar putih + sidebar kiri + konten abu-abu.
 // menu: [{ label, to, icon?, end? }]
@@ -30,7 +31,10 @@ const PanelLayout = ({ menu, menuLabel, topbarLeft, sidebarHeader, sidebarFooter
                     </Link>
                     {topbarLeft}
                 </div>
-                <UserMenu />
+                <div className="flex items-center gap-6">
+                    <NotificationBell />
+                    <UserMenu />
+                </div>
             </header>
 
             <aside

@@ -11,7 +11,10 @@ const menu = [
         label: "Kelola E-Commerce",
         to: "/admin/e-commerce",
         icon: FolderGearIcon,
-        children: [{ label: "Requested Banner", to: "/admin/e-commerce/requests" }],
+        children: [
+            { label: "Requested Banner", to: "/admin/e-commerce/requests" },
+            { label: "Ulasan", to: "/admin/e-commerce/reviews" },
+        ],
     },
     { label: "Pesanan", to: "/admin/orders", icon: CartIcon, children: [{ label: "Refund", to: "/admin/orders/refunds" }] },
     { label: "Payout Seller", to: "/admin/payouts", icon: WalletIcon },

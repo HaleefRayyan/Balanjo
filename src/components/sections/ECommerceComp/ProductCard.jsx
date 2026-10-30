@@ -19,9 +19,9 @@ const ProductCard = ({ product }) => {
         return () => clearTimeout(timer)
     }, [added])
 
-    // "+ Keranjang" langsung menambah 1 dengan variasi pertama; pilih variasi lain di halaman detail
+    // "+ Keranjang" langsung menambah 1 dengan variasi pertama yang masih ada stoknya; pilih variasi lain di halaman detail
     const handleAdd = () => {
-        addItem(product.id, product.variants?.[0], 1)
+        addItem(product.id, product.variants?.find((name) => product.variantStock?.[name] > 0), 1)
         setAdded(true)
     }
 

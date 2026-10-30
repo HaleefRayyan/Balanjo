@@ -9,6 +9,7 @@ export const serializeUser = (user) => ({
     email: user.email,
     role: user.role === "ADMIN" ? "admin" : "user",
     avatar: user.avatarUrl ?? null,
+    emailNotifications: user.emailNotifications ?? true,
     joinedAt: user.createdAt,
 })
 
@@ -47,6 +48,13 @@ export const serializeForumPost = (post) => ({
     ...(post.comments && { comments: post.comments.map(serializeComment) }),
 })
 
+// Relasi yang dibutuhkan serializeProduct (seller, variasi + stoknya, foto)
+export const productInclude = {
+    seller: { select: { name: true } },
+    variants: { orderBy: { position: "asc" } },
+    photos: { orderBy: { position: "asc" } },
+}
+
 // rating: { average, count } dari ulasan (diisi route produk)
 export const serializeProduct = (product, rating = { average: null, count: 0 }) => ({
     id: product.id,
@@ -55,7 +63,9 @@ export const serializeProduct = (product, rating = { average: null, count: 0 }) 
     price: product.price,
     description: product.description,
     photo: product.photoUrl,
-    variants: JSON.parse(product.variants),
+    variants: (product.variants ?? []).map((variant) => variant.name),
+    variantStock: Object.fromEntries((product.variants ?? []).map((variant) => [variant.name, variant.stock])),
+    photos: product.photos?.length ? product.photos.map((photo) => photo.url) : [product.photoUrl],
     stock: product.stock,
     rating,
     seller: product.seller?.name ?? null,

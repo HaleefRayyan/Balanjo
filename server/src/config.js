@@ -32,6 +32,14 @@ export const config = {
         clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
         isProduction: process.env.MIDTRANS_IS_PRODUCTION === "true",
     },
+    // email (SMTP). Kosong = email dicetak di log server
+    smtp: {
+        host: process.env.SMTP_HOST || "",
+        port: Number(process.env.SMTP_PORT) || 587,
+        user: process.env.SMTP_USER || "",
+        pass: process.env.SMTP_PASS || "",
+        from: process.env.MAIL_FROM || process.env.SMTP_USER || "Balanjo <no-reply@balanjo.local>",
+    },
     // potongan platform per penjualan (persen), disimpan per item saat checkout
     platformFeePercent: Math.min(100, Math.max(0, Number(process.env.PLATFORM_FEE_PERCENT ?? 5) || 0)),
 }

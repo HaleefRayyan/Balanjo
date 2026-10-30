@@ -7,6 +7,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../../../context/auth"
 import { useCart } from "../../../context/cart"
 import { useSellerStats } from "../../../api/seller"
+import NotificationBell from "../NotificationBell"
 
 const navItems = [
     ["Home", "/"],
@@ -124,6 +125,7 @@ const Navbar = ({ overlay = false }) => {
                             {cartCount > 99 ? "99+" : cartCount}
                         </span>
                     </Link>
+                    <NotificationBell className={navbarTransparent ? "text-white" : "text-black"} />
                     {authLoading ? (
                         <div className="h-15 w-40" aria-hidden="true" />
                     ) : user ? (
@@ -168,6 +170,9 @@ const Navbar = ({ overlay = false }) => {
                             <Button onClick={() => navigate("/register")} className="w-29.75 h-12.25">Sign up</Button>
                         </div>
                     )}
+                </div>
+                <div className="ml-auto mr-5 lg:hidden">
+                    <NotificationBell className={navbarTransparent ? "text-white" : "text-black"} />
                 </div>
                 <button
                     type="button"

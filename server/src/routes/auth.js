@@ -3,11 +3,12 @@ import { Router } from "express"
 import bcrypt from "bcryptjs"
 import rateLimit from "express-rate-limit"
 import { z } from "zod"
-import { config } from "../config.js"
 import { prisma } from "../db.js"
 import { clearAuthCookie, requireAuth, setAuthCookie } from "../middleware/auth.js"
 import { HttpError, parse } from "../utils/http.js"
 import { serializeUser } from "../utils/serialize.js"
+import { sendEmail } from "../utils/mailer.js"
+import { background } from "../utils/notify.js"
 import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
 
 const router = Router()
@@ -83,6 +84,7 @@ router.patch("/me", requireAuth, async (req, res) => {
         lastName: z.string().trim().max(40).optional().transform((value) => value || null),
         name: z.string().trim().min(1, "Nama tampilan wajib diisi.").max(80),
         email,
+        emailNotifications: z.boolean().optional(),
     }), req.body)
     if (data.email !== req.user.email && await prisma.user.findUnique({ where: { email: data.email } })) {
         throw new HttpError(409, "Email sudah dipakai akun lain.")
@@ -116,7 +118,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
 })
 
 // Selalu membalas 200 (tidak membocorkan apakah email terdaftar).
-// Belum ada layanan email: link reset dicetak di console server.
+// Link reset dikirim lewat email (tanpa SMTP: dicetak di log server).
 router.post("/forgot-password", authLimiter, async (req, res) => {
     const data = parse(z.object({ email }), req.body)
     const user = await prisma.user.findUnique({ where: { email: data.email } })
@@ -125,7 +127,13 @@ router.post("/forgot-password", authLimiter, async (req, res) => {
         await prisma.passwordResetToken.create({
             data: { tokenHash: hashToken(token), userId: user.id, expiresAt: new Date(Date.now() + RESET_TTL_MS) },
         })
-        console.log(`[reset password] ${user.email}: ${config.clientUrl}/reset-password?token=${token}`)
+        background(sendEmail({
+            to: user.email,
+            subject: "Reset password",
+            lines: [`Halo ${user.name},`, "Kami menerima permintaan reset password akun Balanjo kamu. Link ini berlaku 1 jam dan hanya bisa dipakai sekali.", "Abaikan email ini kalau kamu tidak memintanya."],
+            link: `/reset-password?token=${token}`,
+            linkLabel: "Buat password baru",
+        }))
     }
     res.json({ ok: true })
 })

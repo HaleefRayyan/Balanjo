@@ -6,6 +6,8 @@ import { requireAdmin } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeDelivery, serializeOrderItem, serializePayment, serializePayout, serializeRefund, serializeUser } from "../utils/serialize.js"
 import { sellerEarnings } from "../utils/earnings.js"
+import { background } from "../utils/notify.js"
+import * as events from "../utils/events.js"
 
 const router = Router()
 router.use(requireAdmin)
@@ -92,6 +94,39 @@ router.get("/orders", async (req, res) => {
     })
 })
 
+// ---------- Ulasan produk (moderasi) ----------
+// Hapus lewat DELETE /api/reviews/:id (admin boleh menghapus ulasan siapa pun)
+
+router.get("/reviews", async (req, res) => {
+    const query = parse(z.object({
+        rating: z.coerce.number().int().min(1).max(5).optional(),
+        page: z.coerce.number().int().min(1).default(1),
+    }), req.query)
+    const where = query.rating ? { rating: query.rating } : {}
+    const [total, reviews] = await prisma.$transaction([
+        prisma.review.count({ where }),
+        prisma.review.findMany({
+            where,
+            include: { user: { select: { name: true, email: true } }, product: { select: { id: true, name: true, seller: { select: { name: true } } } } },
+            orderBy: { createdAt: "desc" },
+            skip: (query.page - 1) * ORDERS_PAGE_SIZE,
+            take: ORDERS_PAGE_SIZE,
+        }),
+    ])
+    res.json({
+        reviews: reviews.map((review) => ({
+            id: review.id,
+            rating: review.rating,
+            comment: review.comment,
+            author: review.user.name,
+            authorEmail: review.user.email,
+            product: { id: review.product.id, name: review.product.name, seller: review.product.seller?.name ?? null },
+            createdAt: review.createdAt,
+        })),
+        total, page: query.page, pageSize: ORDERS_PAGE_SIZE,
+    })
+})
+
 // ---------- Refund ke pembeli ----------
 // Dikembalikan manual (refund di dashboard Midtrans, atau transfer setelah menghubungi pembeli),
 // lalu ditandai REFUNDED dengan catatan.
@@ -124,7 +159,9 @@ router.patch("/refunds/:id", async (req, res) => {
         if (!(await prisma.refund.findUnique({ where: { id } }))) throw notFound("Refund")
         throw new HttpError(409, "Refund ini sudah diproses.")
     }
-    res.json({ refund: serializeRefund(await prisma.refund.findUnique({ where: { id } })) })
+    const refund = await prisma.refund.findUnique({ where: { id } })
+    background(events.refundDone(refund))
+    res.json({ refund: serializeRefund(refund) })
 })
 
 // ---------- Payout seller ----------
@@ -167,6 +204,7 @@ router.patch("/payouts/:id", async (req, res) => {
         throw new HttpError(409, "Pengajuan ini sudah diproses.")
     }
     const payout = await prisma.payout.findUnique({ where: { id }, include: { seller: sellerSelect } })
+    background(events.payoutProcessed(payout))
     res.json({ payout: serializePayout(payout) })
 })
 

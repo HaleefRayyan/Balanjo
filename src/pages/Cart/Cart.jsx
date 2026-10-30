@@ -30,10 +30,13 @@ const Cart = () => {
     const lines = items.filter((item) => byId.has(item.productId)).map((item) => ({ ...item, product: byId.get(item.productId) }))
     const subtotal = lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0)
 
-    // jumlah per produk dibanding stok (variasi berbeda memakai stok yang sama)
+    // produk bervariasi: dibandingkan dengan stok variasinya; tanpa variasi: stok produk
+    const hasVariants = (line) => line.product.variants.length > 0
+    const stockKey = (line) => (hasVariants(line) ? `${line.productId}:${line.variant}` : String(line.productId))
+    const stockOf = (line) => (hasVariants(line) ? line.product.variantStock[line.variant] ?? 0 : line.product.stock)
     const inCart = new Map()
-    for (const line of lines) inCart.set(line.productId, (inCart.get(line.productId) ?? 0) + line.quantity)
-    const overStock = (line) => inCart.get(line.productId) > line.product.stock
+    for (const line of lines) inCart.set(stockKey(line), (inCart.get(stockKey(line)) ?? 0) + line.quantity)
+    const overStock = (line) => inCart.get(stockKey(line)) > stockOf(line)
     const hasStockProblem = lines.some(overStock)
     // antar: ongkos per seller (tiap seller mengantar sendiri) — dihitung ulang di server
     const sellerCount = new Set(lines.map((line) => line.product.sellerId)).size
@@ -126,7 +129,7 @@ const Cart = () => {
                                         {line.variant && <p className="text-sm text-abu">Variasi: {line.variant}</p>}
                                         {overStock(line) && (
                                             <p className="text-sm font-medium text-red-600">
-                                                {line.product.stock === 0 ? "Stok habis — hapus dari keranjang." : `Stok tersisa ${line.product.stock}. Kurangi jumlahnya.`}
+                                                {stockOf(line) === 0 ? "Stok habis — hapus dari keranjang." : `Stok tersisa ${stockOf(line)}. Kurangi jumlahnya.`}
                                             </p>
                                         )}
                                     </div>

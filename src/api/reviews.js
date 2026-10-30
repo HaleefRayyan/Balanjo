@@ -21,6 +21,7 @@ export const useCreateReview = () => {
     })
 }
 
+// dipakai pemilik ulasan dan admin (moderasi)
 export const useDeleteReview = () => {
     const queryClient = useQueryClient()
     return useMutation({
@@ -30,6 +31,7 @@ export const useDeleteReview = () => {
             queryClient.invalidateQueries({ queryKey: ["reviews"] })
             queryClient.invalidateQueries({ queryKey: ["products"] })
             queryClient.invalidateQueries({ queryKey: ["product"] })
+            queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] })
         },
     })
 }

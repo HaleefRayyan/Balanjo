@@ -41,6 +41,8 @@ model User {
   payouts             Payout[]             @relation("SellerPayouts")
   processedPayouts    Payout[]             @relation("ProcessedPayouts")
   processedRefunds    Refund[]             @relation("ProcessedRefunds")
+  notifications       Notification[]
+  emailNotifications  Boolean              @default(true) // kirim notifikasi juga ke email
 }
 
 model Blog {
@@ -83,21 +85,22 @@ model Comment {
 }
 
 model Product {
-  id             Int             @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
   name           String
   category       String
   price          Int // Rupiah
   description    String
-  photoUrl       String
-  variants       String          @default("[]") // array JSON, mis. ["Hitam","Coklat"]
-  stock          Int             @default(0) // berkurang saat dipesan, kembali saat dibatalkan
+  photoUrl       String // foto sampul (= foto pertama di photos)
+  photos         ProductPhoto[]
+  variants       ProductVariant[]
+  stock          Int              @default(0) // total stok; kalau ada variasi = jumlah stok semua variasi
   sellerId       Int?
-  seller         User?           @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  seller         User?            @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   orderItems     OrderItem[]
   bannerRequests BannerRequest[]
   reviews        Review[]
   cartItems      CartItem[]
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime         @default(now())
 
   @@index([category])
 }
@@ -252,4 +255,42 @@ model Refund {
 
   @@index([orderId])
   @@index([status])
+}
+
+// Notifikasi di website (ikon lonceng). Event penting juga dikirim ke email kalau user mengizinkan.
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // mis. ORDER_PAID, NEW_ORDER, ITEM_STATUS, REFUND_DONE, PAYOUT_PAID
+  title     String
+  body      String
+  link      String? // path di website, mis. /profile/orders
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Variasi produk dengan stok masing-masing (mis. Hitam: 3, Coklat: 0)
+model ProductVariant {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  stock     Int     @default(0)
+  position  Int     @default(0)
+
+  @@unique([productId, name])
+}
+
+// Foto produk (maks. 5). Foto dengan position terkecil = sampul (Product.photoUrl)
+model ProductPhoto {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int     @default(0)
+
+  @@index([productId])
 }

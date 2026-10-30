@@ -68,3 +68,12 @@ export const useMarkRefunded = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin"] }),
     })
 }
+
+// ---------- Ulasan (moderasi; hapus memakai useDeleteReview dari api/reviews) ----------
+
+export const useAdminReviews = ({ rating, page }) =>
+    useQuery({
+        queryKey: ["admin", "reviews", rating ?? "all", page],
+        queryFn: () => api(`/admin/reviews${toQuery({ rating, page })}`),
+        placeholderData: (previous) => previous,
+    })

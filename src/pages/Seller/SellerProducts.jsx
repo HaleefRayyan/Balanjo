@@ -34,7 +34,16 @@ const SellerProducts = () => {
             key: "stock",
             header: "Stok",
             className: "text-abu",
-            render: (product) => product.stock === 0 ? <span className="font-medium text-red-600">Habis</span> : product.stock,
+            render: (product) => (
+                <>
+                    {product.stock === 0 ? <span className="font-medium text-red-600">Habis</span> : product.stock}
+                    {product.variants.length > 0 && (
+                        <span className="block text-xs text-abu">
+                            {product.variants.map((name) => `${name} ${product.variantStock[name]}`).join(" · ")}
+                        </span>
+                    )}
+                </>
+            ),
         },
         { key: "price", header: "Harga", className: "whitespace-nowrap text-abu", render: (product) => formatRupiah(product.price) },
         { key: "sold", header: "Terjual", className: "text-abu" },

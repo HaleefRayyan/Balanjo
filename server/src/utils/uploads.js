@@ -58,6 +58,25 @@ export const uploadImage = [parseImage, storeUpload]
 
 export const fileUrl = (file) => file?.url ?? null
 
+// Beberapa foto sekaligus (field "photos", maks. MAX_PHOTOS). Batas Vercel ~4,5 MB berlaku untuk
+// seluruh body, jadi browser mengecilkan foto dulu sebelum upload. URL ada di req.files[i].url.
+export const MAX_PHOTOS = 5
+const parseImages = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_UPLOAD_BYTES, files: MAX_PHOTOS },
+    fileFilter: (req, file, cb) => {
+        if (EXTENSIONS[file.mimetype]) cb(null, true)
+        else cb(new HttpError(400, "Gambar harus JPG, PNG, WEBP, atau GIF."))
+    },
+}).array("photos", MAX_PHOTOS)
+
+const storeUploads = async (req, res, next) => {
+    for (const file of req.files ?? []) file.url = await saveBuffer(file.buffer, EXTENSIONS[file.mimetype], file.mimetype)
+    next()
+}
+
+export const uploadImages = [parseImages, storeUploads]
+
 // Hapus gambar milik record yang dihapus/diganti. Setiap record punya file sendiri
 // (seed juga menyimpan per record), jadi aman dihapus. Error diabaikan.
 export const removeUpload = async (url) => {
