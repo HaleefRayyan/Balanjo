@@ -12,3 +12,11 @@ export const ORDER_ITEM_STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DONE", 
 // Pengiriman saat checkout (harus sama dengan src/constants/shop.js di frontend)
 export const DELIVERY_METHODS = ["PICKUP", "DELIVERY"] // ambil di kampus | antar di area kampus
 export const DELIVERY_FEE_PER_SELLER = 5000 // ongkos antar per seller dalam satu pesanan
+
+// Pembayaran (Midtrans). UNPAID -> PAID, atau berakhir EXPIRED / FAILED / CANCELLED (item dibatalkan, stok kembali)
+export const PAYMENT_EXPIRY_MINUTES = 60
+
+// Payout seller (harus sama dengan src/constants/shop.js di frontend)
+export const PAYOUT_METHODS = ["BCA", "BRI", "BNI", "Mandiri", "BSI", "CIMB Niaga", "Permata", "SeaBank", "Bank Jago", "GoPay", "OVO", "DANA", "ShopeePay"]
+export const PAYOUT_MIN_AMOUNT = 10000
+export const PAYOUT_STATUSES = ["PENDING", "PAID", "REJECTED"]

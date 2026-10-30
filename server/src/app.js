@@ -17,6 +17,7 @@ import adminRoutes from "./routes/admin.js"
 import sellerRoutes from "./routes/seller.js"
 import reviewRoutes from "./routes/reviews.js"
 import cartRoutes from "./routes/cart.js"
+import paymentRoutes from "./routes/payments.js"
 
 export const createApp = () => {
     const app = express()
@@ -49,6 +50,7 @@ export const createApp = () => {
     app.use("/api/seller", sellerRoutes)
     app.use("/api/reviews", reviewRoutes)
     app.use("/api/cart", cartRoutes)
+    app.use("/api/payments", paymentRoutes)
     app.use("/api", (req, res) => res.status(404).json({ error: "Endpoint tidak ditemukan." }))
 
     // Production: layani hasil `npm run build` frontend + fallback SPA ke index.html

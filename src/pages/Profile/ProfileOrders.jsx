@@ -7,8 +7,9 @@ import { useCreateReview } from "../../api/reviews"
 import DataTable from "../../components/admin/DataTable"
 import { ErrorMessage, Loading } from "../../components/ui/Status"
 import { useCancelOrder, useMyOrders } from "../../api/orders"
-import { orderStatus } from "../../constants/orders"
-import { formatCode, formatLongDate, formatRupiah } from "../../utils/format"
+import { usePayOrder } from "../../api/payments"
+import { orderStatus, paymentStatus } from "../../constants/orders"
+import { formatCode, formatDateTime, formatLongDate, formatRupiah } from "../../utils/format"
 import ProfileCard from "./ProfileCard"
 
 // Ulasan untuk satu item pesanan yang sudah Selesai
@@ -46,11 +47,20 @@ const ReviewModal = ({ item, onClose }) => {
 }
 
 // Desain: Order ID, Produk, Tanggal, Status, Price — satu baris per produk yang dipesan.
-// Tambahan: tombol Batalkan (seluruh pesanan) selama belum ada seller yang memproses.
+// Tambahan: pembayaran (Bayar sekarang selama belum dibayar) dan tombol Batalkan:
+// belum dibayar -> boleh; sudah dibayar online -> hubungi seller; tanpa pembayaran online -> selama belum diproses.
+const canCancel = (order) => order.payment.status === "UNPAID"
+    || (order.payment.status === "PAID" && !order.payment.online && order.items.every((item) => item.status === "PENDING"))
+
 const ProfileOrders = () => {
     const { data: orders, isPending, isError, error, refetch } = useMyOrders()
     const cancelOrder = useCancelOrder()
+    const payOrder = usePayOrder()
     const [reviewing, setReviewing] = useState(null)
+
+    const handlePay = (order) => {
+        payOrder.mutate(order.id, { onError: (requestError) => window.alert(requestError.message) })
+    }
 
     const handleCancel = (order) => {
         if (window.confirm(`Batalkan pesanan ${formatCode(order.id)}?`)) {
@@ -81,7 +91,17 @@ const ProfileOrders = () => {
             header: "Status",
             render: (row) => (
                 <span className="flex flex-col items-start gap-1">
-                    <span className={row.status === "CANCELLED" ? "text-abu" : "text-[#333]"}>{orderStatus[row.status]?.label}</span>
+                    {row.order.payment.status === "PAID"
+                        ? <span className={row.status === "CANCELLED" ? "text-abu" : "text-[#333]"}>{orderStatus[row.status]?.label}</span>
+                        : <span className={paymentStatus[row.order.payment.status]?.className}>{paymentStatus[row.order.payment.status]?.label}</span>}
+                    {row.firstOfOrder && row.order.payment.status === "UNPAID" && (
+                        <>
+                            <span className="text-xs text-abu">Batas bayar {formatDateTime(new Date(row.order.payment.expiresAt))}</span>
+                            <button type="button" disabled={payOrder.isPending} onClick={() => handlePay(row.order)} className="cursor-pointer rounded bg-button px-3 py-1 text-xs font-medium text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60">
+                                {payOrder.isPending && payOrder.variables === row.order.id ? "Membuka..." : "Bayar sekarang"}
+                            </button>
+                        </>
+                    )}
                     {row.status === "DONE" && (row.review
                         ? <StarRating value={row.review.rating} className="h-3.5 w-3.5" />
                         : row.productId && (
@@ -89,7 +109,7 @@ const ProfileOrders = () => {
                                 Beri ulasan
                             </button>
                         ))}
-                    {row.firstOfOrder && row.order.items.every((item) => item.status === "PENDING") && (
+                    {row.firstOfOrder && canCancel(row.order) && (
                         <button type="button" disabled={cancelOrder.isPending} onClick={() => handleCancel(row.order)} className="cursor-pointer text-xs text-red-600 hover:underline disabled:opacity-50">
                             Batalkan pesanan
                         </button>

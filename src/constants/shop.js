@@ -7,3 +7,12 @@ export const deliveryOptions = [
 ]
 
 export const deliveryLabel = (method) => deliveryOptions.find((option) => option.value === method)?.label ?? method
+
+// Payout seller
+export const PAYOUT_METHODS = ["BCA", "BRI", "BNI", "Mandiri", "BSI", "CIMB Niaga", "Permata", "SeaBank", "Bank Jago", "GoPay", "OVO", "DANA", "ShopeePay"]
+
+export const payoutStatus = {
+    PENDING: { label: "Diproses", className: "bg-amber-100 text-amber-800" },
+    PAID: { label: "Dibayar", className: "bg-green-100 text-green-800" },
+    REJECTED: { label: "Ditolak", className: "bg-red-100 text-red-700" },
+}

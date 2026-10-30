@@ -1,11 +1,12 @@
 import PanelLayout from "../components/layout/PanelLayout"
-import { BagIcon, CartIcon, DashboardIcon, FolderGearIcon } from "../components/ui/icons"
+import { BagIcon, CartIcon, DashboardIcon, FolderGearIcon, WalletIcon } from "../components/ui/icons"
 
-// Seller Centre (desain: Dashboard, Produk, Pesanan). "Banner Promosi" tambahan dari fitur yang sudah ada.
+// Seller Centre (desain: Dashboard, Produk, Pesanan). "Penghasilan" dan "Banner Promosi" tambahan.
 const menu = [
     { label: "Dashboard", to: "/seller", icon: DashboardIcon, end: true },
     { label: "Produk", to: "/seller/products", icon: BagIcon },
     { label: "Pesanan", to: "/seller/orders", icon: CartIcon },
+    { label: "Penghasilan", to: "/seller/earnings", icon: WalletIcon },
     { label: "Banner Promosi", to: "/seller/banners", icon: FolderGearIcon },
 ]
 

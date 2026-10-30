@@ -3,11 +3,14 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
-import { ORDER_ITEM_STATUSES, PRODUCT_CATEGORIES } from "../constants.js"
+import { ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
+import { config } from "../config.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
-import { serializeBannerRequest, serializeDelivery, serializeOrderItem, serializeProduct } from "../utils/serialize.js"
+import { serializeBannerRequest, serializeDelivery, serializeOrderItem, serializePayout, serializePayoutAccount, serializeProduct } from "../utils/serialize.js"
+import { sellerEarnings } from "../utils/earnings.js"
 import { fileUrl, removeUpload, uploadImage } from "../utils/uploads.js"
+import { expireOverdueOrders } from "../utils/payments.js"
 
 const router = Router()
 router.use(requireAuth)
@@ -35,10 +38,13 @@ const findOwnProduct = async (req) => {
     return product
 }
 
+// Seller hanya melihat pesanan yang sudah dibayar
+const paid = { order: { paymentStatus: "PAID" } }
+
 // Ringkasan untuk Dashboard Seller Centre: pendapatan & jumlah pesanan (item yang dibatalkan tidak dihitung)
 router.get("/stats", async (req, res) => {
     const items = await prisma.orderItem.findMany({
-        where: { sellerId: req.user.id, status: { not: "CANCELLED" } },
+        where: { sellerId: req.user.id, status: { not: "CANCELLED" }, ...paid },
         select: { orderId: true, price: true, quantity: true },
     })
     res.json({
@@ -59,7 +65,7 @@ router.get("/products", async (req, res) => {
         }),
         prisma.orderItem.groupBy({
             by: ["productId"],
-            where: { sellerId: req.user.id, status: { not: "CANCELLED" }, productId: { not: null } },
+            where: { sellerId: req.user.id, status: { not: "CANCELLED" }, productId: { not: null }, ...paid },
             _sum: { quantity: true },
         }),
     ])
@@ -123,8 +129,9 @@ router.delete("/products/:id", async (req, res) => {
 
 // Item penjualan dikelompokkan per pesanan: [{ orderId, createdAt, buyer, items: [...] }]
 router.get("/orders", async (req, res) => {
+    await expireOverdueOrders({ items: { some: { sellerId: req.user.id } } }) // yang dibayar di detik terakhir ikut tampil
     const items = await prisma.orderItem.findMany({
-        where: { sellerId: req.user.id },
+        where: { sellerId: req.user.id, ...paid },
         include: {
             product: { select: { photoUrl: true } },
             order: {
@@ -159,8 +166,8 @@ const rank = (status) => ORDER_ITEM_STATUSES.indexOf(status)
 
 router.patch("/order-items/:id", async (req, res) => {
     const { status } = parse(z.object({ status: z.enum(ORDER_ITEM_STATUSES, { error: "Status tidak valid." }) }), req.body)
-    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) } })
-    if (!item || item.sellerId !== req.user.id) throw notFound("Item pesanan")
+    const item = await prisma.orderItem.findUnique({ where: { id: parseId(req.params.id) }, include: { order: { select: { paymentStatus: true } } } })
+    if (!item || item.sellerId !== req.user.id || item.order.paymentStatus !== "PAID") throw notFound("Item pesanan")
 
     if (item.status === "DONE" || item.status === "CANCELLED") {
         throw new HttpError(400, "Pesanan yang sudah selesai atau dibatalkan tidak bisa diubah.")
@@ -183,6 +190,67 @@ router.patch("/order-items/:id", async (req, res) => {
         return tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
     })
     res.json({ item: serializeOrderItem(updated) })
+})
+
+// ---------- Penghasilan & payout ----------
+
+router.get("/payouts", async (req, res) => {
+    const [{ summary, entries }, payouts] = await Promise.all([
+        sellerEarnings(req.user.id),
+        prisma.payout.findMany({ where: { sellerId: req.user.id }, orderBy: { createdAt: "desc" } }),
+    ])
+    res.json({
+        summary: { ...summary, feePercent: config.platformFeePercent, minAmount: PAYOUT_MIN_AMOUNT },
+        account: serializePayoutAccount(req.user),
+        payouts: payouts.map(serializePayout),
+        entries,
+    })
+})
+
+const accountSchema = z.object({
+    method: z.enum(PAYOUT_METHODS, { error: "Pilih bank / e-wallet." }),
+    accountNumber: z.string().transform((value) => value.replace(/[\s-]/g, ""))
+        .refine((value) => /^\d{5,20}$/.test(value), "Nomor rekening / HP harus 5-20 angka."),
+    accountName: z.string().trim().min(2, "Nama pemilik rekening wajib diisi.").max(80),
+})
+
+router.put("/payout-account", async (req, res) => {
+    const data = parse(accountSchema, req.body)
+    const user = await prisma.user.update({
+        where: { id: req.user.id },
+        data: { payoutMethod: data.method, payoutAccountNumber: data.accountNumber, payoutAccountName: data.accountName },
+    })
+    res.json({ account: serializePayoutAccount(user) })
+})
+
+// Ajukan penarikan. Satu pengajuan PENDING per seller (dijaga juga oleh unique index di database).
+router.post("/payouts", async (req, res) => {
+    const { amount } = parse(z.object({
+        amount: z.number({ error: "Jumlah harus berupa angka." }).int("Jumlah harus bilangan bulat.")
+            .min(PAYOUT_MIN_AMOUNT, `Minimal penarikan Rp${PAYOUT_MIN_AMOUNT.toLocaleString("id-ID")}.`),
+    }), req.body)
+    if (!req.user.payoutMethod) throw new HttpError(400, "Isi rekening / e-wallet tujuan dulu.")
+    if (await prisma.payout.count({ where: { sellerId: req.user.id, status: "PENDING" } })) {
+        throw new HttpError(400, "Masih ada pengajuan yang sedang diproses.")
+    }
+    const { summary } = await sellerEarnings(req.user.id)
+    if (amount > summary.balance) throw new HttpError(400, `Saldo yang bisa ditarik Rp${summary.balance.toLocaleString("id-ID")}.`)
+
+    try {
+        const payout = await prisma.payout.create({
+            data: {
+                sellerId: req.user.id,
+                amount,
+                method: req.user.payoutMethod,
+                accountNumber: req.user.payoutAccountNumber,
+                accountName: req.user.payoutAccountName,
+            },
+        })
+        res.status(201).json({ payout: serializePayout(payout) })
+    } catch (error) {
+        if (error.code === "P2002") throw new HttpError(409, "Masih ada pengajuan yang sedang diproses.")
+        throw error
+    }
 })
 
 // ---------- Pengajuan banner milik seller ----------

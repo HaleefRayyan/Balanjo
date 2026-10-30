@@ -22,3 +22,12 @@ export const bannerRequestStatus = {
     APPROVED: { label: "Disetujui", className: "bg-green-100 text-green-800" },
     REJECTED: { label: "Ditolak", className: "bg-red-100 text-red-700" },
 }
+
+// Status pembayaran pesanan (harus sama dengan server: UNPAID | PAID | EXPIRED | FAILED | CANCELLED)
+export const paymentStatus = {
+    UNPAID: { label: "Menunggu pembayaran", className: "text-amber-700" },
+    PAID: { label: "Dibayar", className: "text-green-700" },
+    EXPIRED: { label: "Pembayaran kedaluwarsa", className: "text-abu" },
+    FAILED: { label: "Pembayaran gagal", className: "text-red-600" },
+    CANCELLED: { label: "Dibatalkan", className: "text-abu" },
+}

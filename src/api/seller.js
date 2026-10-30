@@ -75,3 +75,28 @@ export const useCreateBannerRequest = () => {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "banner-requests"] }),
     })
 }
+
+// ---------- Penghasilan & payout ----------
+
+// { summary, account, payouts, entries }
+export const useSellerPayouts = () =>
+    useQuery({
+        queryKey: ["seller", "payouts"],
+        queryFn: () => api("/seller/payouts"),
+    })
+
+export const useSavePayoutAccount = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (account) => api("/seller/payout-account", { method: "PUT", body: account }).then((data) => data.account),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "payouts"] }),
+    })
+}
+
+export const useRequestPayout = () => {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (amount) => api("/seller/payouts", { method: "POST", body: { amount } }).then((data) => data.payout),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["seller", "payouts"] }),
+    })
+}

@@ -1,10 +1,14 @@
+import crypto from "node:crypto"
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
-import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS } from "../constants.js"
+import { config } from "../config.js"
+import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS, PAYMENT_EXPIRY_MINUTES } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeOrder } from "../utils/serialize.js"
+import { cancelTransaction, createSnapTransaction, midtransEnabled } from "../utils/midtrans.js"
+import { closeUnpaidOrder, expireOverdueOrders, refreshPayment } from "../utils/payments.js"
 
 const router = Router()
 router.use(requireAuth)
@@ -59,6 +63,7 @@ router.post("/", async (req, res) => {
             price: product.price,
             variant: item.variant ?? null,
             quantity: item.quantity,
+            platformFee: Math.round(product.price * item.quantity * config.platformFeePercent / 100),
         }
     })
     const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity, 0)
@@ -85,9 +90,16 @@ router.post("/", async (req, res) => {
                 throw new HttpError(400, left > 0 ? `Stok ${product.name} tinggal ${left}.` : `Stok ${product.name} habis.`)
             }
         }
+        // dengan Midtrans: menunggu pembayaran (stok sudah dipesan sampai batas bayar);
+        // tanpa Midtrans (development): langsung dianggap dibayar
+        const now = new Date()
         return tx.order.create({
             data: {
                 userId: req.user.id,
+                createdAt: now,
+                ...(midtransEnabled
+                    ? { paymentStatus: "UNPAID", paymentExpiresAt: new Date(now.getTime() + PAYMENT_EXPIRY_MINUTES * 60_000) }
+                    : { paymentStatus: "PAID", paidAt: now }),
                 total,
                 shippingFee,
                 deliveryMethod: delivery.method,
@@ -105,6 +117,7 @@ router.post("/", async (req, res) => {
 
 // Riwayat pesanan milik user yang login
 router.get("/", async (req, res) => {
+    await expireOverdueOrders({ userId: req.user.id })
     const orders = await prisma.order.findMany({
         where: { userId: req.user.id },
         include: withItems,
@@ -113,11 +126,66 @@ router.get("/", async (req, res) => {
     res.json({ orders: orders.map(serializeOrder) })
 })
 
-// Pembeli bisa membatalkan selama belum ada seller yang memproses (semua item masih PENDING)
-router.post("/:id/cancel", async (req, res) => {
+const findOwnOrder = async (req) => {
     const order = await prisma.order.findUnique({ where: { id: parseId(req.params.id) }, include: { items: true } })
     if (!order || order.userId !== req.user.id) throw notFound("Pesanan")
+    return order
+}
+
+const sendOrder = async (res, id) => {
+    const order = await prisma.order.findUnique({ where: { id }, include: withItems })
+    res.json({ order: serializeOrder(order) })
+}
+
+// Token Snap untuk membayar (dibuat sekali, dipakai ulang sampai batas bayar)
+router.post("/:id/pay", async (req, res) => {
+    let order = await findOwnOrder(req)
+    if (order.paymentStatus === "UNPAID") {
+        await refreshPayment(order) // mungkin sudah dibayar / kedaluwarsa
+        order = await findOwnOrder(req)
+    }
+    if (order.paymentStatus === "PAID") throw new HttpError(400, "Pesanan ini sudah dibayar.")
+    if (order.paymentStatus !== "UNPAID") throw new HttpError(400, "Pesanan ini sudah ditutup. Silakan pesan ulang.")
+    if (order.paymentToken) return res.json({ token: order.paymentToken })
+
+    // order_id Midtrans unik per percobaan (database lokal & production berbagi akun sandbox yang sama)
+    const ref = `BALANJO-${order.id}-${crypto.randomBytes(3).toString("hex")}`
+    const snap = await createSnapTransaction({
+        ref,
+        order,
+        user: req.user,
+        expiryMinutes: Math.max(1, Math.ceil((order.paymentExpiresAt - order.createdAt) / 60_000)),
+        finishUrl: `${config.clientUrl}/profile/orders`,
+    })
+    if (!snap) throw new HttpError(502, "Gagal menghubungi Midtrans. Coba lagi sebentar lagi.")
+    // dua klik "Bayar" bersamaan: hanya token pertama yang disimpan
+    const { count } = await prisma.order.updateMany({
+        where: { id: order.id, paymentToken: null },
+        data: { paymentRef: ref, paymentToken: snap.token },
+    })
+    const saved = count ? snap.token : (await findOwnOrder(req)).paymentToken
+    res.json({ token: saved })
+})
+
+// Cek status pembayaran langsung ke Midtrans (setelah popup Snap ditutup)
+router.post("/:id/refresh-payment", async (req, res) => {
+    const order = await findOwnOrder(req)
+    await refreshPayment(order).catch((error) => console.error(`Cek pembayaran pesanan ${order.id} gagal:`, error.message))
+    await sendOrder(res, order.id)
+})
+
+// Belum dibayar: boleh dibatalkan kapan saja.
+// Sudah dibayar lewat Midtrans: tidak bisa dibatalkan sendiri (uang perlu dikembalikan), hubungi seller.
+// Tanpa pembayaran online (development / pesanan lama): boleh selama belum diproses seller.
+router.post("/:id/cancel", async (req, res) => {
+    const order = await findOwnOrder(req)
+    if (order.paymentStatus === "UNPAID") {
+        if (order.paymentRef) await cancelTransaction(order.paymentRef)
+        await closeUnpaidOrder(order.id, "CANCELLED")
+        return sendOrder(res, order.id)
+    }
     if (order.items.every((item) => item.status === "CANCELLED")) throw new HttpError(400, "Pesanan ini sudah dibatalkan.")
+    if (order.paymentRef) throw new HttpError(400, "Pesanan sudah dibayar. Hubungi seller untuk pembatalan dan pengembalian dana.")
     if (order.items.some((item) => item.status !== "PENDING")) {
         throw new HttpError(400, "Pesanan sudah diproses seller dan tidak bisa dibatalkan.")
     }
@@ -131,8 +199,7 @@ router.post("/:id/cancel", async (req, res) => {
             await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } })
         }
     })
-    const updated = await prisma.order.findUnique({ where: { id: order.id }, include: withItems })
-    res.json({ order: serializeOrder(updated) })
+    await sendOrder(res, order.id)
 })
 
 export default router

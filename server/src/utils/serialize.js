@@ -98,6 +98,32 @@ export const serializeDelivery = (order) => ({
     note: order.note,
 })
 
+export const serializePayoutAccount = (user) => (user.payoutMethod
+    ? { method: user.payoutMethod, accountNumber: user.payoutAccountNumber, accountName: user.payoutAccountName }
+    : null)
+
+export const serializePayout = (payout) => ({
+    id: payout.id,
+    amount: payout.amount,
+    status: payout.status,
+    method: payout.method,
+    accountNumber: payout.accountNumber,
+    accountName: payout.accountName,
+    adminNote: payout.adminNote,
+    seller: payout.seller ? { id: payout.seller.id, name: payout.seller.name, email: payout.seller.email } : undefined,
+    processedAt: payout.processedAt,
+    createdAt: payout.createdAt,
+})
+
+// online: dibayar / dibuat lewat Midtrans (false untuk pesanan lama & mode development)
+export const serializePayment = (order) => ({
+    status: order.paymentStatus,
+    type: order.paymentType,
+    online: Boolean(order.paymentRef),
+    expiresAt: order.paymentExpiresAt,
+    paidAt: order.paidAt,
+})
+
 export const serializeReview = (review) => ({
     id: review.id,
     rating: review.rating,
@@ -115,6 +141,7 @@ export const serializeOrder = (order) => ({
     subtotal: order.total - order.shippingFee,
     shippingFee: order.shippingFee,
     delivery: serializeDelivery(order),
+    payment: serializePayment(order),
     createdAt: order.createdAt,
     items: order.items?.map(serializeOrderItem),
 })
