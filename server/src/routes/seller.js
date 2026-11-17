@@ -3,7 +3,7 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
-import { DELIVERY_FEE_PER_SELLER, ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES } from "../constants.js"
+import { DELIVERY_FEE_PER_SELLER, ORDER_ITEM_STATUSES, PAYOUT_METHODS, PAYOUT_MIN_AMOUNT, PRODUCT_CATEGORIES, TX_OPTIONS } from "../constants.js"
 import { config } from "../config.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
@@ -134,7 +134,7 @@ router.post("/products", uploadImages, async (req, res) => {
             const created = await tx.product.create({ data: { ...productFields(data, photos), sellerId: req.user.id } })
             await saveDetails(tx, created.id, data, photos)
             return tx.product.findUnique({ where: { id: created.id }, include: productInclude })
-        })
+        }, TX_OPTIONS)
         await cleanupUploads(req.files, photos)
         res.status(201).json({ product: serializeProduct(product) })
     } catch (error) {
@@ -155,7 +155,7 @@ router.put("/products/:id", uploadImages, async (req, res) => {
             await tx.product.update({ where: { id: product.id }, data: productFields(data, photos) })
             await saveDetails(tx, product.id, data, photos)
             return tx.product.findUnique({ where: { id: product.id }, include: productInclude })
-        })
+        }, TX_OPTIONS)
         await cleanupUploads(req.files, photos)
         await Promise.all(existing.filter((url) => !photos.includes(url)).map(removeUpload))
         res.json({ product: serializeProduct(updated) })
@@ -264,7 +264,7 @@ router.patch("/order-items/:id", async (req, res) => {
         }
         const saved = await tx.orderItem.findUnique({ where: { id: item.id }, include: { product: { select: { photoUrl: true } } } })
         return { saved, refund }
-    })
+    }, TX_OPTIONS)
     background(events.itemStatusChanged(item.id, status, updated.refund))
     res.json({ item: serializeOrderItem(updated.saved) })
 })

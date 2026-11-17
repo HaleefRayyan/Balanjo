@@ -1,6 +1,7 @@
 // Perubahan status pembayaran pesanan. Dipakai oleh webhook Midtrans, cek status manual, dan kedaluwarsa.
 // Semua update bersyarat (updateMany ... where status lama), jadi notifikasi ganda / bersamaan aman.
 import { prisma } from "../db.js"
+import { TX_OPTIONS } from "../constants.js"
 import { getTransactionStatus, midtransEnabled, toPaymentStatus } from "./midtrans.js"
 import { background } from "./notify.js"
 import { releaseStock } from "./stock.js"
@@ -16,7 +17,7 @@ export const closeUnpaidOrder = (orderId, paymentStatus) => prisma.$transaction(
     await tx.orderItem.updateMany({ where: { orderId, status: "PENDING" }, data: { status: "CANCELLED" } })
     await releaseStock(tx, items)
     return true
-})
+}, TX_OPTIONS)
 
 const markPaid = (order, paymentType) => prisma.$transaction(async (tx) => {
     const paid = { paymentStatus: "PAID", paymentType: paymentType ?? null, paidAt: new Date() }
@@ -39,7 +40,7 @@ const markPaid = (order, paymentType) => prisma.$transaction(async (tx) => {
         })
     }
     return null
-}).then((result) => {
+}, TX_OPTIONS).then((result) => {
     if (result === "PAID") background(events.orderPaid(order.id))
     else if (result) background(events.refundCreated(result))
 })

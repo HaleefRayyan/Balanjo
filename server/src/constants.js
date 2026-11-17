@@ -23,3 +23,6 @@ export const PAYOUT_STATUSES = ["PENDING", "PAID", "REJECTED"]
 
 export const PAYMENT_STATUSES = ["UNPAID", "PAID", "EXPIRED", "FAILED", "CANCELLED"]
 export const REFUND_STATUSES = ["PENDING", "REFUNDED"]
+
+// Opsi timeout transaksi Prisma ($transaction) untuk serverless di Vercel & Neon PgBouncer
+export const TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 }

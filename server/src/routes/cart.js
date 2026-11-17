@@ -3,6 +3,7 @@
 import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
+import { TX_OPTIONS } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { parse } from "../utils/http.js"
 
@@ -49,7 +50,7 @@ router.put("/", async (req, res) => {
         await tx.cartItem.deleteMany({ where: { userId: req.user.id } })
         await tx.cartItem.createMany({ data: [...merged.values()].map((item) => ({ ...item, userId: req.user.id })) })
         return tx.cartItem.findMany({ where: { userId: req.user.id }, orderBy: { createdAt: "asc" } })
-    })
+    }, TX_OPTIONS)
     res.json({ items: serializeCart(rows) })
 })
 

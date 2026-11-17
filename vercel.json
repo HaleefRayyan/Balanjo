@@ -3,6 +3,7 @@
   "installCommand": "npm install && npm --prefix server install",
   "buildCommand": "npm --prefix server run db:migrate && npm run build",
   "outputDirectory": "dist",
+  "regions": ["sin1"],
   "functions": {
     "api/index.js": {
       "maxDuration": 30,

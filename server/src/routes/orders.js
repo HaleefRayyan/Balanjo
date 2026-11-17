@@ -3,7 +3,7 @@ import { Router } from "express"
 import { z } from "zod"
 import { prisma } from "../db.js"
 import { config } from "../config.js"
-import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS, PAYMENT_EXPIRY_MINUTES } from "../constants.js"
+import { DELIVERY_FEE_PER_SELLER, DELIVERY_METHODS, PAYMENT_EXPIRY_MINUTES, TX_OPTIONS } from "../constants.js"
 import { requireAuth } from "../middleware/auth.js"
 import { HttpError, notFound, parse, parseId } from "../utils/http.js"
 import { serializeOrder } from "../utils/serialize.js"
@@ -99,7 +99,7 @@ router.post("/", async (req, res) => {
             },
             include: withItems,
         })
-    })
+    }, TX_OPTIONS)
     if (order.paymentStatus === "PAID") background(events.orderPaid(order.id))
     res.status(201).json({ order: serializeOrder(order) })
 })
@@ -185,7 +185,7 @@ router.post("/:id/cancel", async (req, res) => {
         const { count } = await tx.orderItem.updateMany({ where: { orderId: order.id, status: "PENDING" }, data: { status: "CANCELLED" } })
         if (count !== order.items.length) throw new HttpError(409, "Status pesanan baru saja berubah. Muat ulang halaman.")
         await releaseStock(tx, order.items)
-    })
+    }, TX_OPTIONS)
     await sendOrder(res, order.id)
 })
 
